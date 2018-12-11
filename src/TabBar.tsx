@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import { Tab } from './Tab';
+import { TabDropArea } from './TabDropArea';
 import { TabHeader } from './TabHeader';
 import { ifset } from './util';
 
@@ -59,6 +60,11 @@ export class TabBar extends React.Component<TabBarProps> {
 		return (
 			<div className='tabBar'>
 				{entries}
+				<TabDropArea
+					realm={realm}
+					onDrop={(t, s) => ifset(onDrop)(t, order.length, s)}
+					className='rest'
+				/>
 			</div>
 		);
 	}
