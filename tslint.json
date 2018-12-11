@@ -4,8 +4,10 @@
 		"tslint:recommended"
 	],
 	"rules": {
+		"class-name": false,
 		"indent": [true, "tabs"],
 		"interface-name": false,
+		"object-literal-sort-keys": false,
 		"quotemark": [true, "single", "avoid-escape", "avoid-template"]
 	}
 }
