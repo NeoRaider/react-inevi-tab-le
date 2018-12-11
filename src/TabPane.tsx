@@ -2,52 +2,90 @@ import * as React from 'react';
 
 import { Tab } from './Tab';
 import { TabBar } from './TabBar';
+import { def, ifset, moveElement, removeElementAt } from './util';
 
 export interface TabPaneProps {
-	realm?: symbol;
+	realm?: {};
+	source?: {};
 
 	tabs: Record<string, Tab>;
 
 	order?: string[];
 	defaultOrder?: string[];
 
-	active?: string;
-	defaultActive?: string;
+	active?: string | null;
+	defaultActive?: string | null;
 
 	onChange?: (tab: string) => void;
 	onClose?: (tab: string) => void;
 
-	onDrop?: (tab: string, index: number) => void;
+	onDrop?: (tab: string, index: number, source: any) => void;
 }
 
-interface TabPaneState {
-	active?: string;
+export interface TabPaneState {
+	active: string | null;
 	order: string[];
 }
 
-export class TabPane extends React.Component<TabPaneProps, TabPaneState> {
-	private readonly defaultRealm = Symbol('Tab realm');
+export function removeTab(tab: string): ((state: TabPaneState) => TabPaneState | null) {
+	return ({ active: prevActive, order: prevOrder }) => {
+		const index = prevOrder.indexOf(tab);
+		if (index < 0) {
+			return null;
+		}
 
+		const order = removeElementAt(prevOrder, index);
+
+		let active = prevActive;
+		if (tab === prevActive) {
+			active = def(order[Math.min(index, order.length - 1)], null);
+		}
+
+		return {
+			active,
+			order,
+		};
+	};
+}
+
+export class TabPane extends React.Component<TabPaneProps, TabPaneState> {
 	public constructor(props: TabPaneProps) {
 		super(props);
 
+		const {
+			defaultActive,
+			defaultOrder,
+		} = props;
+
 		this.state = {
-			active: props.defaultActive,
-			order: props.defaultOrder || [],
+			active: def(defaultActive, null),
+			order: def(defaultOrder, []),
 		};
 	}
 
 	public render() {
-		const { order: orderProp, active: activeProp, realm, tabs } = this.props;
-		const { order: orderState, active: activeState } = this.state;
+		const {
+			order: orderProp,
+			active: activeProp,
+			realm: realmProp,
+			source,
+			tabs,
+		} = this.props;
+		const {
+			order: orderState,
+			active: activeState,
+		} = this.state;
 
-		const active = activeProp || activeState;
-		const order = orderProp || orderState;
+		const realm = def(realmProp, this);
+
+		const active = def(activeProp, activeState);
+		const order = def(orderProp, orderState);
 
 		return (
 			<div className='tabPane'>
 				<TabBar
-					realm={realm || this.defaultRealm}
+					realm={realm}
+					source={source}
 					tabs={tabs}
 					order={order}
 					active={active}
@@ -67,64 +105,22 @@ export class TabPane extends React.Component<TabPaneProps, TabPaneState> {
 			active: tab,
 		});
 
-		const { onChange } = this.props;
-		if (onChange) {
-			onChange(tab);
-		}
+		ifset(this.props.onChange)(tab);
 	}
 
 	private handleClose = (tab: string) => {
-		this.setState(({ active: active, order: order }) => {
-			const index = order.indexOf(tab);
-			if (index < 0) {
-				return null;
-			}
+		this.setState(removeTab(tab));
 
-			order = order.filter((t, i) => i !== index);
-
-			if (tab === active) {
-				if (index < order.length) {
-					active = order[index];
-				} else {
-					active = order[order.length - 1];
-				}
-			}
-
-			return {
-				active,
-				order,
-			};
-		});
-
-		const { onClose } = this.props;
-		if (onClose) {
-			onClose(tab);
-		}
+		ifset(this.props.onClose)(tab);
 	}
 
-	private handleDrop = (tab: string, index: number) => {
-		this.setState(({ order: oldOrder }) => {
-			const order = oldOrder.slice(0);
-
-			const oldIndex = order.indexOf(tab);
-			if (oldIndex >= 0) {
-				order.splice(oldIndex, 1);
-
-				if (index <= oldIndex) {
-					order.splice(index, 0, tab);
-				} else {
-					order.splice(index - 1, 0, tab);
-				}
-			}
-
+	private handleDrop = (tab: string, index: number, source: any) => {
+		this.setState(({ order }) => {
 			return {
-				order,
+				order: moveElement(order, tab, index),
 			};
 		});
 
-		const { onDrop } = this.props;
-		if (onDrop) {
-			onDrop(tab, index);
-		}
+		ifset(this.props.onDrop)(tab, index, source);
 	}
 }

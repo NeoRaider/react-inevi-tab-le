@@ -3,19 +3,21 @@ import { ConnectDragSource, DragSource, DragSourceConnector, DragSourceMonitor }
 
 import { TabDesc, TabDragType } from './Tab';
 import { TabDropArea } from './TabDropArea';
+import { ifset } from './util';
 
 export interface TabHeaderProps {
 	id: string;
 	tab: TabDesc;
 	isActive: boolean;
 
-	realm: symbol;
+	realm: {};
+	source?: {};
 
 	onSelect?: () => void;
 	onClose?: () => void;
 
-	onDropLeft?: (tab: string) => void;
-	onDropRight?: (tab: string) => void;
+	onDropLeft?: (tab: string, source: any) => void;
+	onDropRight?: (tab: string, source: any) => void;
 }
 
 interface TabHeaderSourceProps {
@@ -24,10 +26,11 @@ interface TabHeaderSourceProps {
 }
 
 const tabHeaderSource = {
-	beginDrag({id, realm}: TabHeaderProps) {
+	beginDrag({ id, realm, source }: TabHeaderProps) {
 		return {
 			id,
 			realm,
+			source,
 		};
 	},
 };
@@ -87,10 +90,7 @@ class _TabHeader extends React.Component<TabHeaderProps & TabHeaderSourceProps> 
 	private handleMouseDown = (e: React.MouseEvent) => {
 		switch (e.button) {
 		case 0:
-			const { onSelect } = this.props;
-			if (onSelect) {
-				onSelect();
-			}
+			ifset(this.props.onSelect)();
 			break;
 
 		case 1:
@@ -111,10 +111,7 @@ class _TabHeader extends React.Component<TabHeaderProps & TabHeaderSourceProps> 
 		e.preventDefault();
 		e.stopPropagation();
 
-		const { onClose } = this.props;
-		if (onClose) {
-			onClose();
-		}
+		ifset(this.props.onClose)();
 	}
 }
 

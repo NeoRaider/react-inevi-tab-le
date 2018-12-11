@@ -4,10 +4,10 @@ import { ConnectDropTarget, DropTarget, DropTargetConnector, DropTargetMonitor }
 import { TabDragType } from './Tab';
 
 export interface TabDropAreaProps {
-	realm: symbol;
+	realm: {};
 	className: string;
 
-	onDrop?: (tab: string) => void;
+	onDrop?: (tab: string, source: any) => void;
 }
 
 interface TabDropAreaTargetProps {
@@ -22,7 +22,8 @@ const dropAreaTarget = {
 	},
 	drop({ onDrop }: TabDropAreaProps, monitor: DropTargetMonitor) {
 		if (onDrop) {
-			onDrop(monitor.getItem().id);
+			const tab = monitor.getItem();
+			onDrop(tab.id, tab.source);
 		}
 	},
 };

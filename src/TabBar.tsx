@@ -2,27 +2,33 @@ import * as React from 'react';
 
 import { Tab } from './Tab';
 import { TabHeader } from './TabHeader';
+import { ifset } from './util';
 
 export interface TabBarProps {
-	realm: symbol;
+	realm: {};
+	source?: {};
 
 	tabs: Record<string, Tab>;
 	order: string[];
-	active?: string;
+	active: string | null;
 
 	onChange?: (tab: string) => void;
 	onClose?: (tab: string) => void;
 
-	onDrop?: (tab: string, index: number) => void;
+	onDrop?: (tab: string, index: number, source: any) => void;
 }
 
 export class TabBar extends React.Component<TabBarProps> {
 	public render() {
 		const {
 			realm,
+			source,
 			active,
 			order,
 			tabs,
+			onChange,
+			onClose,
+			onDrop,
 		} = this.props;
 
 		const entries: React.ReactNode[] = [
@@ -37,14 +43,15 @@ export class TabBar extends React.Component<TabBarProps> {
 			entries.push(
 				<TabHeader
 					realm={realm}
+					source={source}
 					key={id}
 					id={id}
 					tab={tab.desc}
 					isActive={id === active}
-					onSelect={() => this.handleChange(id)}
-					onClose={() => this.handleClose(id)}
-					onDropLeft={(t) => this.handleDrop(t, i)}
-					onDropRight={(t) => this.handleDrop(t, i + 1)}
+					onSelect={() => ifset(onChange)(id)}
+					onClose={() => ifset(onClose)(id)}
+					onDropLeft={(t, s) => ifset(onDrop)(t, i, s)}
+					onDropRight={(t, s) => ifset(onDrop)(t, i + 1, s)}
 				/>,
 			);
 		});
@@ -54,29 +61,5 @@ export class TabBar extends React.Component<TabBarProps> {
 				{entries}
 			</div>
 		);
-	}
-
-	private handleChange = (tab: string) => {
-		const { onChange } = this.props;
-
-		if (onChange) {
-			onChange(tab);
-		}
-	}
-
-	private handleClose = (tab: string) => {
-		const { onClose } = this.props;
-
-		if (onClose) {
-			onClose(tab);
-		}
-	}
-
-	private handleDrop = (tab: string, index: number) => {
-		const { onDrop } = this.props;
-
-		if (onDrop) {
-			onDrop(tab, index);
-		}
 	}
 }
