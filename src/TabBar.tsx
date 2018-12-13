@@ -32,16 +32,13 @@ export class TabBar extends React.Component<TabBarProps> {
 			onDrop,
 		} = this.props;
 
-		const entries: React.ReactNode[] = [
-		];
-
-		order.forEach((id, i) => {
+		const entries = order.map((id, i) => {
 			const tab = tabs[id];
 			if (!tab) {
-				return;
+				return null;
 			}
 
-			entries.push(
+			return (
 				<TabHeader
 					realm={realm}
 					source={source}
@@ -53,7 +50,7 @@ export class TabBar extends React.Component<TabBarProps> {
 					onClose={() => ifset(onClose)(id)}
 					onDropLeft={(t, s) => ifset(onDrop)(t, i, s)}
 					onDropRight={(t, s) => ifset(onDrop)(t, i + 1, s)}
-				/>,
+				/>
 			);
 		});
 
