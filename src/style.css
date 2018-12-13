@@ -15,6 +15,11 @@ html, body {
 	border: 0;
 }
 
+.tabPane {
+	width: 100%;
+	height: 100%;
+}
+
 .tabBar {
 	overflow: hidden;
 	white-space: nowrap;
@@ -51,7 +56,7 @@ html, body {
 
 .dropArea {
 	position: relative;
-	z-index: 1000;
+	z-index: 1;
 
 	pointer-events: none;
 }
@@ -134,4 +139,84 @@ html, body {
 
 .tabHeader:hover .tabCloser, .tabHeader.active .tabCloser {
 	visibility: visible;
+}
+
+.tabHeader.dragging {
+	opacity: 0.5;
+}
+
+.tabContent {
+	height: calc(100% - 2.1em);
+	overflow: auto;
+
+	display: none;
+}
+
+.tabContentProvider {
+	position: absolute;
+	z-index: 1;
+
+	overflow: auto;
+
+	display: none;
+}
+
+.tabContent.active {
+	display: block;
+}
+
+.tabLayout {
+	position: relative;
+	height: 100%;
+
+	overflow: hidden;
+}
+
+.tabContentArea {
+	height: calc(100% - 2.1em);
+}
+
+.Resizer {
+	background: #fff;
+	opacity: .2;
+	z-index: 1;
+	-moz-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+	box-sizing: border-box;
+	-moz-background-clip: padding;
+	-webkit-background-clip: padding;
+	background-clip: padding-box;
+}
+
+.Resizer.horizontal {
+	height: 7px;
+	margin: -3px 0;
+	border-top: 3px solid rgba(0, 0, 0, 0);
+	border-bottom: 3px solid rgba(0, 0, 0, 0);
+	cursor: row-resize;
+	width: 100%;
+}
+
+.Resizer.horizontal:hover {
+	border-top: 3px solid rgba(255, 255, 255, 0.5);
+	border-bottom: 3px solid rgba(255, 255, 255, 0.5);
+}
+
+.Resizer.vertical {
+	width: 7px;
+	margin: 0 -3px;
+	border-left: 3px solid rgba(0, 0, 0, 0);
+	border-right: 3px solid rgba(0, 0, 0, 0);
+	cursor: col-resize;
+}
+
+.Resizer.vertical:hover {
+	border-left: 3px solid rgba(255, 255, 255, 0.5);
+	border-right: 3px solid rgba(255, 255, 255, 0.5);
+}
+.Resizer.disabled {
+	cursor: not-allowed;
+}
+.Resizer.disabled:hover {
+	border-color: transparent;
 }

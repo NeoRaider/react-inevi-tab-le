@@ -2,10 +2,9 @@ import * as React from 'react';
 
 import { Tab } from './Tab';
 import { TabBar } from './TabBar';
-import { def, ifset, moveElement, removeElementAt } from './util';
+import { def, ifset, moveElement, removeElementAt, uniqSorted } from './util';
 
 export interface TabPaneProps {
-	realm?: {};
 	source?: {};
 
 	tabs: Record<string, Tab>;
@@ -67,7 +66,6 @@ export class TabPane extends React.Component<TabPaneProps, TabPaneState> {
 		const {
 			order: orderProp,
 			active: activeProp,
-			realm: realmProp,
 			source,
 			tabs,
 		} = this.props;
@@ -76,15 +74,13 @@ export class TabPane extends React.Component<TabPaneProps, TabPaneState> {
 			active: activeState,
 		} = this.state;
 
-		const realm = def(realmProp, this);
-
 		const active = def(activeProp, activeState);
 		const order = def(orderProp, orderState);
 
 		return (
 			<div className='tabPane'>
 				<TabBar
-					realm={realm}
+					realm={this}
 					source={source}
 					tabs={tabs}
 					order={order}
@@ -93,9 +89,14 @@ export class TabPane extends React.Component<TabPaneProps, TabPaneState> {
 					onClose={this.handleClose}
 					onDrop={this.handleDrop}
 				/>
-				<div className='tabContent'>
-					{active && tabs[active].content}
-				</div>
+				{ uniqSorted(order).map((tab) => (
+					<div
+						key={tab}
+						className={'tabContent' + ((tab === active) ? ' active' : '')}
+					>
+						{tabs[tab].content}
+					</div>
+				)) }
 			</div>
 		);
 	}

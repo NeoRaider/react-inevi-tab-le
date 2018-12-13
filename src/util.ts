@@ -34,6 +34,20 @@ export function moveElement<T>(array: T[], el: T, to: number): T[] {
 	return moveElementAt(array, index, to);
 }
 
+export function sorted<T>(array: T[], cmp?: (a: T, b: T) => number): T[] {
+	const ret = array.slice(0);
+	ret.sort(cmp);
+	return ret;
+}
+
+export function uniq<T>(array: T[]): T[] {
+	return array.filter((e, i) => (i === 0) || (e !== array[i - 1]));
+}
+
+export function uniqSorted<T>(array: T[], cmp?: (a: T, b: T) => number): T[] {
+	return uniq(sorted(array, cmp));
+}
+
 export function ifset<T extends any[]>(f?: (...args: T) => void) {
 	return (...args: T): void => {
 		if (f) {
