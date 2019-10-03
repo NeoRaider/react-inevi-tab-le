@@ -31,6 +31,7 @@
 		"react": "^16.10.1",
 		"react-dnd": "^9.4.0",
 		"react-dom": "^16.10.1",
-		"react-multi-split-pane": "^0.3.0"
+		"react-multi-split-pane": "^0.3.0",
+		"react-reverse-portal": "^1.0.3"
 	}
 }

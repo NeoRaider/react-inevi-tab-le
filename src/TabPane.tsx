@@ -1,17 +1,16 @@
 import * as React from 'react';
 
 import { TabBar } from './TabBar';
-import { Tab } from './Tab';
 import { TabViewProps } from './LayoutProvider';
+import { OutPortal } from 'react-reverse-portal';
 
-export function TabPane({ realm, layout, tabs, onSelect, onClose, onMove }: TabViewProps<Tab>): JSX.Element | null {
+export function TabPane({ realm, layout, tabs, portals, onSelect, onClose, onMove }: TabViewProps): JSX.Element | null {
 	if (layout.split !== 'none') {
 		throw new Error('TabPane does not support split layouts');
 	}
 
 	const { id, order, active } = layout;
-	const activeTab = active ? tabs.get(active) : undefined;
-	const content = activeTab ? activeTab.content : null;
+	const activePortal = active ? portals.get(active) : undefined;
 
 	return (
 		<div className='tabPane'>
@@ -24,11 +23,7 @@ export function TabPane({ realm, layout, tabs, onSelect, onClose, onMove }: TabV
 				onClose={onClose}
 				onDrop={(tab, pos): boolean => onMove(tab, pos, id)}
 			/>
-			{active && (
-				<div key={active} className='tabContent'>
-					{content}
-				</div>
-			)}
+			{active && activePortal && <OutPortal key={active} node={activePortal} />}
 		</div>
 	);
 }

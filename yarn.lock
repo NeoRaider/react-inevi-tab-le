@@ -980,6 +980,11 @@ react-multi-split-pane@^0.3.0:
     react "^16.10.1"
     react-dom "^16.10.1"
 
+react-reverse-portal@^1.0.3:
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/react-reverse-portal/-/react-reverse-portal-1.0.3.tgz#38cd2d40f40862352dd63905f9b923f9c41f474b"
+  integrity sha512-mCtpp3BzPedmGTAMqT2v5U1hwnAvRfSqMusriON/GxnedT9gvNNTvai24NnrfKfQ78zqPo4e3N5nWPLpY7bORQ==
+
 react@^16.10.1:
   version "16.10.1"
   resolved "https://registry.yarnpkg.com/react/-/react-16.10.1.tgz#967c1e71a2767dfa699e6ba702a00483e3b0573f"

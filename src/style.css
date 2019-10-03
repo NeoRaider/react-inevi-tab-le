@@ -134,20 +134,7 @@
 
 .tabContent {
 	flex: auto;
-	overflow: auto;
-}
-
-.tabContentProvider {
-	position: absolute;
-	z-index: 1;
-
-	overflow: auto;
-
-	display: none;
-}
-
-.tabContentArea {
-	flex: auto;
+	overflow: hidden;
 }
 
 .DragLayer {

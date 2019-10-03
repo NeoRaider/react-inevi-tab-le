@@ -2,11 +2,10 @@ import * as React from 'react';
 
 import { SplitPane } from 'react-multi-split-pane';
 
-import { Tab } from './Tab';
 import { TabPane } from './TabPane';
 import { TabViewProps } from './LayoutProvider';
 
-export function TabLayout(props: TabViewProps<Tab>): JSX.Element | null {
+export function TabLayout(props: TabViewProps): JSX.Element | null {
 	const { layout } = props;
 
 	if (layout.split === 'none') {
