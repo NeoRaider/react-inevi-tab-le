@@ -1,118 +1,89 @@
 import * as React from 'react';
-import { ConnectDragSource, DragSource, DragSourceConnector, DragSourceMonitor } from 'react-dnd';
+import { useDrag } from 'react-dnd';
 
-import { TabDesc, TabDragType } from './Tab';
+import { TabDesc, TabDragDesc, TabDragType } from './Tab';
 import { TabDropArea } from './TabDropArea';
-import { ifset } from './util';
 
 export interface TabHeaderProps {
 	id: string;
 	tab: TabDesc;
 	isActive: boolean;
 
-	realm: {};
-	source?: {};
+	realm: symbol;
 
-	onSelect?: () => void;
-	onClose?: () => void;
+	onSelect: () => void;
+	onClose: () => void;
 
-	onDropLeft?: (tab: string, source: any) => void;
-	onDropRight?: (tab: string, source: any) => void;
+	onDropLeft: (tab: string) => void;
+	onDropRight: (tab: string) => void;
 }
 
-interface TabHeaderSourceProps {
-	connectDragSource: ConnectDragSource;
-	isDragging: boolean;
-}
+export function TabHeader({
+	id,
+	tab,
+	isActive,
+	realm,
+	onDropLeft,
+	onDropRight,
+	onClose,
+	onSelect,
+}: TabHeaderProps): JSX.Element {
+	const item: TabDragDesc = { type: TabDragType, id, realm };
+	const [{ isDragging }, drag] = useDrag({
+		item,
+		collect: (monitor) => ({
+			isDragging: monitor.isDragging(),
+		}),
+	});
 
-const tabHeaderSource = {
-	beginDrag({ id, realm, source }: TabHeaderProps) {
-		return {
-			id,
-			realm,
-			source,
-		};
-	},
-};
-
-function collect(
-	connect: DragSourceConnector,
-	monitor: DragSourceMonitor,
-): TabHeaderSourceProps {
-	return {
-		connectDragSource: connect.dragSource(),
-		isDragging: monitor.isDragging(),
-	};
-}
-
-class _TabHeader extends React.Component<TabHeaderProps & TabHeaderSourceProps> {
-	public render() {
-		const {
-			tab,
-			isActive,
-			realm,
-			isDragging,
-			connectDragSource,
-			onDropLeft,
-			onDropRight,
-		} = this.props;
-
-		const className = (
-			'tabHeader'
-			+ (isActive ? ' active' : '')
-			+ (isDragging ? ' dragging' : '')
-			+ ((tab.closable !== false) ? ' closable' : '')
-		);
-
-		return connectDragSource(
-			<div className={className} onMouseDown={this.handleMouseDown}>
-				<div className='dropAreaContainer'>
-					<TabDropArea realm={realm} onDrop={onDropLeft} className='left' />
-					<TabDropArea realm={realm} onDrop={onDropRight} className='right' />
-				</div>
-				<div className='tabHeaderContent'>
-					<span className='tabTitle'>
-						{tab.title}
-					</span>
-					{tab.closable !== false &&
-						<span
-							className='tabCloser'
-							onMouseDown={this.handleMouseDownClose}
-							onClick={this.handleClose}
-						/>
-					}
-				</div>
-			</div>,
-		);
-
-	}
-
-	private handleMouseDown = (e: React.MouseEvent) => {
+	const handleMouseDown = (e: React.MouseEvent): void => {
 		switch (e.button) {
-		case 0:
-			ifset(this.props.onSelect)();
-			break;
+			case 0:
+				onSelect();
+				break;
 
-		case 1:
-			const { tab, onClose } = this.props;
-			if (tab.closable !== false && onClose) {
-				onClose();
-			}
-			break;
+			case 1:
+				if (tab.closable !== false) {
+					onClose();
+				}
+				break;
 		}
-	}
+	};
 
-	private handleMouseDownClose = (e: React.MouseEvent) => {
+	const handleMouseDownClose = (e: React.MouseEvent): void => {
 		e.preventDefault();
 		e.stopPropagation();
-	}
+	};
 
-	private handleClose = (e: React.MouseEvent) => {
+	const handleClose = (e: React.MouseEvent): void => {
 		e.preventDefault();
 		e.stopPropagation();
 
-		ifset(this.props.onClose)();
-	}
+		onClose();
+	};
+
+	const className =
+		'tabHeader' +
+		(isActive ? ' active' : '') +
+		(isDragging ? ' dragging' : '') +
+		(tab.closable !== false ? ' closable' : '');
+
+	return (
+		<div ref={drag} className={className} onMouseDown={handleMouseDown}>
+			<div className='dropAreaContainer'>
+				<TabDropArea realm={realm} onDrop={onDropLeft} className='left' />
+				<TabDropArea realm={realm} onDrop={onDropRight} className='right' />
+			</div>
+			<div className='tabHeaderContent'>
+				<span className='tabTitle'>{tab.title}</span>
+				{tab.closable !== false && (
+					<span
+						className='tabCloser'
+						onMouseDown={handleMouseDownClose}
+						onClick={handleClose}
+					/>
+				)}
+			</div>
+		</div>
+	);
 }
-
-export const TabHeader = DragSource(TabDragType, tabHeaderSource, collect)(_TabHeader);

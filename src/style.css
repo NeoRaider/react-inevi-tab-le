@@ -6,6 +6,7 @@
 }
 
 .tabPane {
+	width: 100%;
 	height: 100%;
 
 	display: flex;
@@ -23,6 +24,11 @@
 	background: #111111;
 
 	font-family: sans-serif;
+
+	-moz-user-select: none;
+	-webkit-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
 }
 
 .tabHeader {
@@ -129,12 +135,6 @@
 .tabContent {
 	flex: auto;
 	overflow: auto;
-
-	display: none;
-}
-
-.tabContent.active {
-	display: block;
 }
 
 .tabContentProvider {
@@ -148,6 +148,23 @@
 
 .tabContentArea {
 	flex: auto;
+}
+
+.DragLayer {
+	z-index: 1;
+	pointer-events: none;
+}
+
+.DragLayer.resizing {
+	pointer-events: auto;
+}
+
+.DragLayer.horizontal {
+	cursor: row-resize;
+}
+
+.DragLayer.vertical {
+	cursor: col-resize;
 }
 
 .Resizer {
@@ -167,7 +184,7 @@
 	width: 100%;
 }
 
-.Resizer.horizontal:hover {
+.Resizer.horizontal:hover, .Resizer.horizontal.resizing {
 	border-top: 3px solid rgba(255, 255, 255, 0.5);
 	border-bottom: 3px solid rgba(255, 255, 255, 0.5);
 }
@@ -181,7 +198,7 @@
 	height: 100%;
 }
 
-.Resizer.vertical:hover {
+.Resizer.vertical:hover, .Resizer.vertical.resizing {
 	border-left: 3px solid rgba(255, 255, 255, 0.5);
 	border-right: 3px solid rgba(255, 255, 255, 0.5);
 }
