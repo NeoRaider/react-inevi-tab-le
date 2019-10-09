@@ -49,9 +49,9 @@ export interface TabViewProps {
 	tabs: ReadonlyMap<string, Tab>;
 	portals: ReadonlyMap<string, PortalNode>;
 
-	onSelect(tab: string): boolean;
-	onClose(tab: string): boolean;
-	onMove(tab: string, pos: number, dest: string): boolean;
+	onSelect(tab: string): void;
+	onClose(tab: string): void;
+	onMove(tab: string, dest: string, pos: number): void;
 }
 
 export interface LayoutProviderProps {
@@ -96,11 +96,15 @@ export function LayoutProvider({ layoutManager, view }: LayoutProviderProps): JS
 				realm={realm.current}
 				tabs={tabs}
 				portals={portals}
-				onSelect={(tab): boolean => layoutManager.selectTab(tab)}
-				onClose={(tab): boolean => layoutManager.closeTab(tab)}
-				onMove={(tab: string, pos: number, dest: string): boolean =>
-					layoutManager.moveTab(tab, pos, dest)
-				}
+				onSelect={(tab): void => {
+					layoutManager.selectTab(tab);
+				}}
+				onClose={(tab): void => {
+					layoutManager.closeTab(tab);
+				}}
+				onMove={(tab: string, dest: string, pos: number): void => {
+					layoutManager.moveTab(tab, dest, pos);
+				}}
 			/>
 			{inPortals}
 		</>

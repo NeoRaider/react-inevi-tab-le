@@ -46,7 +46,7 @@ export interface LayoutManager<T> {
 
 	selectTab(tab: string): boolean;
 	closeTab(tab: string): boolean;
-	moveTab(tab: string, pos: number, dest: string): boolean;
+	moveTab(tab: string, dest: string, pos: number): boolean;
 }
 
 export class DefaultLayoutManager<T> implements LayoutManager<T> {
@@ -157,7 +157,7 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 		return true;
 	}
 
-	public moveTab(tab: string, pos: number, dest: string): boolean {
+	public moveTab(tab: string, dest: string, pos: number): boolean {
 		const source = this.tabPanes.get(tab);
 		if (!source) {
 			return false;

@@ -132,8 +132,24 @@
 	border-color: #ffffff;
 }
 
-.tabContent {
+.tabContentArea {
 	flex: auto;
+	overflow: hidden;
+}
+
+.tabContentArea .dropArea {
+	position: absolute;
+
+	width: 100%;
+	height: 100%;
+}
+
+.tabContentArea .dropArea.hover {
+	background: rgba(80, 80, 78, 0.5);
+}
+
+.tabContent {
+	height: 100%;
 	overflow: hidden;
 }
 

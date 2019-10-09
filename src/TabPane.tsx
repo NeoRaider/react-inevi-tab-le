@@ -1,14 +1,25 @@
 import * as React from 'react';
+import { OutPortal } from 'react-reverse-portal';
 
 import { TabBar } from './TabBar';
 import { TabViewProps } from './LayoutProvider';
-import { OutPortal } from 'react-reverse-portal';
+import { PaneLayout } from './LayoutManager';
 
-export function TabPane({ realm, layout, tabs, portals, onSelect, onClose, onMove }: TabViewProps): JSX.Element | null {
-	if (layout.split !== 'none') {
-		throw new Error('TabPane does not support split layouts');
-	}
+export interface InternalTabPaneProps extends TabViewProps {
+	layout: PaneLayout;
+	children?: React.ReactNode;
+}
 
+export function InternalTabPane({
+	children,
+	realm,
+	layout,
+	tabs,
+	portals,
+	onSelect,
+	onClose,
+	onMove,
+}: InternalTabPaneProps): JSX.Element {
 	const { id, order, active } = layout;
 	const activePortal = active ? portals.get(active) : undefined;
 
@@ -21,9 +32,21 @@ export function TabPane({ realm, layout, tabs, portals, onSelect, onClose, onMov
 				active={active}
 				onSelect={onSelect}
 				onClose={onClose}
-				onDrop={(tab, pos): boolean => onMove(tab, pos, id)}
+				onDrop={(tab, pos): void => onMove(tab, id, pos)}
 			/>
-			{active && activePortal && <OutPortal key={active} node={activePortal} />}
+			<div className='tabContentArea'>
+				{children}
+				{active && activePortal && <OutPortal key={active} node={activePortal} />}
+			</div>
 		</div>
 	);
+}
+
+export function TabPane(props: TabViewProps): JSX.Element {
+	const { layout } = props;
+	if (layout.split !== 'none') {
+		throw new Error('TabPane does not support split layouts');
+	}
+
+	return <InternalTabPane {...props} layout={layout} />;
 }

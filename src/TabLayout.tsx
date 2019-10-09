@@ -2,14 +2,30 @@ import * as React from 'react';
 
 import { SplitPane } from 'react-multi-split-pane';
 
-import { TabPane } from './TabPane';
+import { InternalTabPane } from './TabPane';
 import { TabViewProps } from './LayoutProvider';
+import { TabDropArea } from './TabDropArea';
 
-export function TabLayout(props: TabViewProps): JSX.Element | null {
+export function TabLayout(props: TabViewProps): JSX.Element {
 	const { layout } = props;
 
 	if (layout.split === 'none') {
-		return <TabPane {...props} />;
+		const { realm, onMove } = props;
+		const { id, order } = layout;
+
+		return (
+			<InternalTabPane {...props} layout={layout}>
+				<TabDropArea
+					realm={realm}
+					onDrop={(tab): void => {
+						if (!order.includes(tab)) {
+							onMove(tab, id, order.length);
+						}
+					}}
+					className='contentAreaCenter'
+				/>
+			</InternalTabPane>
+		);
 	}
 
 	const { children, split } = layout;
