@@ -15,6 +15,14 @@ export function TabLayout(props: TabViewProps): JSX.Element {
 
 		return (
 			<InternalTabPane {...props} layout={layout}>
+				<TabDropArea realm={realm} onDrop={(): void => {}} className='top' />
+				<div className='dropIndicator' />
+				<TabDropArea realm={realm} onDrop={(): void => {}} className='bottom' />
+				<div className='dropIndicator' />
+				<TabDropArea realm={realm} onDrop={(): void => {}} className='left' />
+				<div className='dropIndicator' />
+				<TabDropArea realm={realm} onDrop={(): void => {}} className='right' />
+				<div className='dropIndicator' />
 				<TabDropArea
 					realm={realm}
 					onDrop={(tab): void => {
@@ -22,8 +30,9 @@ export function TabLayout(props: TabViewProps): JSX.Element {
 							onMove(tab, id, order.length);
 						}
 					}}
-					className='contentAreaCenter'
+					className='center'
 				/>
+				<div className='dropIndicator' />
 			</InternalTabPane>
 		);
 	}
