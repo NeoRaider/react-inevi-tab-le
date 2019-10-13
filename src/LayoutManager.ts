@@ -26,11 +26,17 @@ export type InputLayout = InputPaneLayout | InputSplitLayout;
 export type Layout = PaneLayout | SplitLayout;
 
 interface FlatSplitLayout {
-	split: Split;
-	children: string[];
+	readonly parent: string | null;
+	readonly id: string;
+	readonly split: Split;
+	readonly children: ReadonlyArray<string>;
 }
 
-type FlatLayout = PaneLayout | FlatSplitLayout;
+interface FlatPaneLayout extends PaneLayout {
+	readonly parent: string | null;
+}
+
+type FlatLayout = FlatPaneLayout | FlatSplitLayout;
 
 const emptyLayout: InputPaneLayout = {
 	split: 'none',
@@ -50,18 +56,19 @@ export interface LayoutManager<T> {
 }
 
 export class DefaultLayoutManager<T> implements LayoutManager<T> {
-	protected static clonePaneLayout(layout: InputPaneLayout, id: string): PaneLayout {
+	protected static clonePaneLayout(layout: InputPaneLayout, parent: string | null, id: string): FlatPaneLayout {
 		const { order, active } = layout;
 		return {
 			split: 'none',
 			order: order.slice(0),
 			active,
+			parent,
 			id,
 		};
 	}
 
-	protected static removeTab(layout: PaneLayout, tab: string): PaneLayout | null {
-		const { id, active: prevActive, order: prevOrder } = layout;
+	protected static removeTab(layout: FlatPaneLayout, tab: string): FlatPaneLayout | null {
+		const { active: prevActive, order: prevOrder } = layout;
 
 		const index = prevOrder.indexOf(tab);
 		if (index < 0) {
@@ -79,8 +86,7 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 		}
 
 		return {
-			split: 'none',
-			id,
+			...layout,
 			active,
 			order,
 		};
@@ -95,7 +101,7 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 
 	public constructor(tabs: Map<string, T> = new Map(), layout: InputLayout = emptyLayout) {
 		this.tabs = new Map(tabs);
-		this.root = this.flattenLayout(layout);
+		this.root = this.flattenLayout(layout, null);
 	}
 
 	public addUpdateListener(listener: LayoutUpdateListener<T>): void {
@@ -210,7 +216,7 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 		return (this.nextID++).toString();
 	}
 
-	protected flattenLayout(layout: InputLayout): string {
+	protected flattenLayout(layout: InputLayout, parent: string | null): string {
 		const id = this.newID();
 
 		let flatLayout: FlatLayout;
@@ -221,12 +227,14 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 				const { split, children } = layout;
 				flatLayout = {
 					split,
-					children: children.map(this.flattenLayout, this),
+					children: children.map((c) => this.flattenLayout(c, id)),
+					parent,
+					id,
 				};
 				break;
 
 			case 'none':
-				flatLayout = DefaultLayoutManager.clonePaneLayout(layout, id);
+				flatLayout = DefaultLayoutManager.clonePaneLayout(layout, parent, id);
 				for (const tab of layout.order) {
 					this.tabPanes.set(tab, id);
 				}
@@ -258,7 +266,7 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 				};
 
 			case 'none':
-				return DefaultLayoutManager.clonePaneLayout(layout, layout.id);
+				return DefaultLayoutManager.clonePaneLayout(layout, layout.parent, layout.id);
 		}
 	}
 
