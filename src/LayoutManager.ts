@@ -221,7 +221,7 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 	}
 
 	protected newID(): string {
-		return (this.nextID++).toString();
+		return (this.nextID++).toString(36);
 	}
 
 	protected flattenLayout(layout: InputLayout, parent: string | null): string {
