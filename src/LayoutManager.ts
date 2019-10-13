@@ -55,6 +55,10 @@ export interface LayoutManager<T> {
 	moveTab(tab: string, dest: string, pos: number): boolean;
 }
 
+function corrupt(): never {
+	throw new Error('Data corruption');
+}
+
 export class DefaultLayoutManager<T> implements LayoutManager<T> {
 	protected static clonePaneLayout(layout: InputPaneLayout, parent: string | null, id: string): FlatPaneLayout {
 		const { order, active } = layout;
@@ -122,16 +126,16 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 		if (!pane) {
 			return false;
 		}
-		const layout = this.layouts.get(pane);
-		if (!layout || layout.split !== 'none') {
-			throw new Error('Data corruption');
+		const layout = this.getLayout(pane);
+		if (layout.split !== 'none') {
+			return corrupt();
 		}
 
 		if (layout.order.indexOf(tab) < 0) {
 			return false;
 		}
 
-		this.layouts.set(pane, {
+		this.setLayout({
 			...layout,
 			active: tab,
 		});
@@ -145,9 +149,9 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 		if (!pane) {
 			return false;
 		}
-		const layout = this.layouts.get(pane);
-		if (!layout || layout.split !== 'none') {
-			throw new Error('Data corruption');
+		const layout = this.getLayout(pane);
+		if (layout.split !== 'none') {
+			return corrupt();
 		}
 
 		const newLayout = DefaultLayoutManager.removeTab(layout, tab);
@@ -155,9 +159,11 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 			return false;
 		}
 
-		this.layouts.set(pane, newLayout);
+		this.setLayout(newLayout);
 		this.tabs.delete(tab);
 		this.tabPanes.delete(tab);
+
+		this.checkUnsplit(pane);
 
 		this.update();
 		return true;
@@ -169,9 +175,9 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 			return false;
 		}
 
-		const sourceLayout = this.layouts.get(source);
-		if (!sourceLayout || sourceLayout.split !== 'none') {
-			throw new Error('Data corruption');
+		const sourceLayout = this.getLayout(source);
+		if (sourceLayout.split !== 'none') {
+			return corrupt();
 		}
 
 		if (source === dest) {
@@ -181,13 +187,13 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 				return false;
 			}
 
-			this.layouts.set(source, {
+			this.setLayout({
 				...sourceLayout,
 				order: moveElementAt(order, index, pos),
 			});
 		} else {
-			const destLayout = this.layouts.get(dest);
-			if (!destLayout || destLayout.split !== 'none') {
+			const destLayout = this.getLayout(dest);
+			if (destLayout.split !== 'none') {
 				return false;
 			}
 
@@ -203,9 +209,11 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 				active: tab,
 			};
 
-			this.layouts.set(source, newSourceLayout);
-			this.layouts.set(dest, newDestLayout);
+			this.setLayout(newSourceLayout);
+			this.setLayout(newDestLayout);
 			this.tabPanes.set(tab, dest);
+
+			this.checkUnsplit(source);
 		}
 
 		this.update();
@@ -225,6 +233,9 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 			case 'horizontal':
 			case 'vertical':
 				const { split, children } = layout;
+				if (children.length < 2) {
+					throw new Error('Split layout with single child');
+				}
 				flatLayout = {
 					split,
 					children: children.map((c) => this.flattenLayout(c, id)),
@@ -250,10 +261,7 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 	}
 
 	protected unflattenLayout(id: string = this.root): Layout {
-		const layout = this.layouts.get(id);
-		if (!layout) {
-			throw new Error('Data corruption');
-		}
+		const layout = this.getLayout(id);
 
 		switch (layout.split) {
 			case 'horizontal':
@@ -268,6 +276,48 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 			case 'none':
 				return DefaultLayoutManager.clonePaneLayout(layout, layout.parent, layout.id);
 		}
+	}
+
+	private setLayout(layout: FlatLayout): void {
+		this.layouts.set(layout.id, layout);
+	}
+
+	private getLayout(id: string): FlatLayout {
+		return this.layouts.get(id) || corrupt();
+	}
+
+	private checkUnsplit(id: string): void {
+		const layout = this.getLayout(id);
+		if (layout.split !== 'none') {
+			return corrupt();
+		}
+
+		if (layout.order.length > 0 || layout.parent === null) return;
+
+		const parent = this.getLayout(layout.parent);
+		if (parent.split === 'none') {
+			return corrupt();
+		}
+
+		const remaining = removeElement(parent.children, id);
+
+		if (remaining.length > 1) {
+			this.setLayout({ ...parent, children: remaining });
+		} else {
+			const otherID = remaining[0];
+			const other = this.getLayout(otherID);
+
+			if (other.split === 'none') {
+				for (const tab of other.order) {
+					this.tabPanes.set(tab, parent.id);
+				}
+			}
+
+			this.layouts.delete(otherID);
+			this.setLayout({ ...other, parent: parent.parent, id: parent.id });
+		}
+
+		this.layouts.delete(id);
 	}
 
 	private updateOne(listener: LayoutUpdateListener<T>, layout: Layout, tabs: Map<string, T>): void {
