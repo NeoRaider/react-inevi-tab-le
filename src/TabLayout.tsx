@@ -13,18 +13,21 @@ export function TabLayout(props: TabViewProps): JSX.Element {
 		const { realm, onMove } = props;
 		const { id, order } = layout;
 
+		const ignore = order.length === 1 ? order[0] : undefined;
+
 		return (
 			<InternalTabPane {...props} layout={layout}>
-				<TabDropArea realm={realm} onDrop={(): void => {}} className='top' />
+				<TabDropArea realm={realm} ignore={ignore} onDrop={(): void => {}} className='top' />
 				<div className='dropIndicator' />
-				<TabDropArea realm={realm} onDrop={(): void => {}} className='bottom' />
+				<TabDropArea realm={realm} ignore={ignore} onDrop={(): void => {}} className='bottom' />
 				<div className='dropIndicator' />
-				<TabDropArea realm={realm} onDrop={(): void => {}} className='left' />
+				<TabDropArea realm={realm} ignore={ignore} onDrop={(): void => {}} className='left' />
 				<div className='dropIndicator' />
-				<TabDropArea realm={realm} onDrop={(): void => {}} className='right' />
+				<TabDropArea realm={realm} ignore={ignore} onDrop={(): void => {}} className='right' />
 				<div className='dropIndicator' />
 				<TabDropArea
 					realm={realm}
+					ignore={ignore}
 					onDrop={(tab): void => {
 						if (!order.includes(tab)) {
 							onMove(tab, id, order.length);
