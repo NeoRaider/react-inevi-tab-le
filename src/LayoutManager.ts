@@ -1,6 +1,18 @@
 import { appendElement, insertElementAt, moveElementAt, removeElement, removeElementAt } from './util';
 
 export type Split = 'horizontal' | 'vertical';
+export type Direction = 'left' | 'right' | 'top' | 'bottom';
+
+function dirToSplit(dir: Direction): Split {
+	switch (dir) {
+		case 'left':
+		case 'right':
+			return 'vertical';
+		case 'top':
+		case 'bottom':
+			return 'horizontal';
+	}
+}
 
 export interface InputSplitLayout {
 	readonly split: Split;
@@ -53,6 +65,7 @@ export interface LayoutManager<T> {
 	selectTab(tab: string): boolean;
 	closeTab(tab: string): boolean;
 	moveTab(tab: string, dest: string, pos: number): boolean;
+	moveTabSplit(tab: string, dest: string, dir: Direction): boolean;
 }
 
 function corrupt(): never {
@@ -218,6 +231,54 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 
 		this.update();
 		return true;
+	}
+
+	public moveTabSplit(tab: string, dest: string, dir: Direction): boolean {
+		const source = this.tabPanes.get(tab);
+		if (!source) {
+			return false;
+		}
+
+		const destLayout = this.getLayout(dest);
+		if (destLayout.split !== 'none') {
+			return corrupt();
+		}
+
+		if (destLayout.parent !== null) {
+			const parentLayout = this.getLayout(destLayout.parent);
+			if (parentLayout.split === 'none') {
+				return corrupt();
+			}
+
+			if (parentLayout.split === dirToSplit(dir)) {
+				let index = parentLayout.children.indexOf(dest);
+				if (index < 0) {
+					return corrupt();
+				}
+
+				if (dir === 'right' || dir === 'bottom') {
+					index++;
+				}
+
+				const newLayout = DefaultLayoutManager.clonePaneLayout(
+					emptyLayout,
+					parentLayout.id,
+					this.newID(),
+				);
+				this.setLayout(newLayout);
+				this.setLayout({
+					...parentLayout,
+					children: insertElementAt(parentLayout.children, newLayout.id, index),
+				});
+
+				if (!this.moveTab(tab, newLayout.id, 0)) {
+					corrupt();
+				}
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	protected newID(): string {

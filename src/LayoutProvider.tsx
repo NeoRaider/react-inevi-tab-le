@@ -3,7 +3,7 @@ const { useEffect, useState, useRef } = React;
 
 import { PortalNode, createPortalNode, InPortal } from 'react-reverse-portal';
 
-import { Layout, LayoutManager } from './LayoutManager';
+import { Layout, LayoutManager, Direction } from './LayoutManager';
 import { Tab } from './Tab';
 
 interface LayoutState<T> {
@@ -52,6 +52,7 @@ export interface TabViewProps {
 	onSelect(tab: string): void;
 	onClose(tab: string): void;
 	onMove(tab: string, dest: string, pos: number): void;
+	onMoveSplit(tab: string, dest: string, dir: Direction): void;
 }
 
 export interface LayoutProviderProps {
@@ -104,6 +105,9 @@ export function LayoutProvider({ layoutManager, view }: LayoutProviderProps): JS
 				}}
 				onMove={(tab: string, dest: string, pos: number): void => {
 					layoutManager.moveTab(tab, dest, pos);
+				}}
+				onMoveSplit={(tab: string, dest: string, dir: Direction): void => {
+					layoutManager.moveTabSplit(tab, dest, dir);
 				}}
 			/>
 			{inPortals}

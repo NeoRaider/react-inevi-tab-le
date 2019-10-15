@@ -5,6 +5,30 @@ import { SplitPane } from 'react-multi-split-pane';
 import { InternalTabPane } from './TabPane';
 import { TabViewProps } from './LayoutProvider';
 import { TabDropArea } from './TabDropArea';
+import { Direction } from './LayoutManager';
+
+interface TabSplitAreaProps extends TabViewProps {
+	dir: Direction;
+	ignore?: string;
+}
+
+function TabSplitArea({ realm, layout, dir, ignore, onMoveSplit }: TabSplitAreaProps): JSX.Element {
+	const { id } = layout;
+
+	return (
+		<>
+			<TabDropArea
+				realm={realm}
+				ignore={ignore}
+				onDrop={(tab): void => {
+					onMoveSplit(tab, id, dir);
+				}}
+				className={dir}
+			/>
+			<div className='dropIndicator' />
+		</>
+	);
+}
 
 export function TabLayout(props: TabViewProps): JSX.Element {
 	const { layout } = props;
@@ -17,14 +41,10 @@ export function TabLayout(props: TabViewProps): JSX.Element {
 
 		return (
 			<InternalTabPane {...props} layout={layout}>
-				<TabDropArea realm={realm} ignore={ignore} onDrop={(): void => {}} className='top' />
-				<div className='dropIndicator' />
-				<TabDropArea realm={realm} ignore={ignore} onDrop={(): void => {}} className='bottom' />
-				<div className='dropIndicator' />
-				<TabDropArea realm={realm} ignore={ignore} onDrop={(): void => {}} className='left' />
-				<div className='dropIndicator' />
-				<TabDropArea realm={realm} ignore={ignore} onDrop={(): void => {}} className='right' />
-				<div className='dropIndicator' />
+				<TabSplitArea {...props} dir='top' ignore={ignore} />
+				<TabSplitArea {...props} dir='bottom' ignore={ignore} />
+				<TabSplitArea {...props} dir='left' ignore={ignore} />
+				<TabSplitArea {...props} dir='right' ignore={ignore} />
 				<TabDropArea
 					realm={realm}
 					ignore={ignore}
