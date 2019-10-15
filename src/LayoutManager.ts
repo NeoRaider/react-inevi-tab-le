@@ -139,10 +139,7 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 		if (!pane) {
 			return false;
 		}
-		const layout = this.getLayout(pane);
-		if (layout.split !== 'none') {
-			return corrupt();
-		}
+		const layout = this.getPaneLayout(pane);
 
 		if (layout.order.indexOf(tab) < 0) {
 			return false;
@@ -162,10 +159,7 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 		if (!pane) {
 			return false;
 		}
-		const layout = this.getLayout(pane);
-		if (layout.split !== 'none') {
-			return corrupt();
-		}
+		const layout = this.getPaneLayout(pane);
 
 		const newLayout = DefaultLayoutManager.removeTab(layout, tab);
 		if (!newLayout) {
@@ -188,10 +182,7 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 			return false;
 		}
 
-		const sourceLayout = this.getLayout(source);
-		if (sourceLayout.split !== 'none') {
-			return corrupt();
-		}
+		const sourceLayout = this.getPaneLayout(source);
 
 		if (source === dest) {
 			const { order } = sourceLayout;
@@ -205,10 +196,7 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 				order: moveElementAt(order, index, pos),
 			});
 		} else {
-			const destLayout = this.getLayout(dest);
-			if (destLayout.split !== 'none') {
-				return false;
-			}
+			const destLayout = this.getPaneLayout(dest);
 
 			const newSourceLayout = DefaultLayoutManager.removeTab(sourceLayout, tab);
 			if (!newSourceLayout) {
@@ -239,16 +227,10 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 			return false;
 		}
 
-		const destLayout = this.getLayout(dest);
-		if (destLayout.split !== 'none') {
-			return corrupt();
-		}
+		const destLayout = this.getPaneLayout(dest);
 
 		if (destLayout.parent !== null) {
-			const parentLayout = this.getLayout(destLayout.parent);
-			if (parentLayout.split === 'none') {
-				return corrupt();
-			}
+			const parentLayout = this.getSplitLayout(destLayout.parent);
 
 			if (parentLayout.split === dirToSplit(dir)) {
 				let index = parentLayout.children.indexOf(dest);
@@ -288,8 +270,6 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 	protected flattenLayout(layout: InputLayout, parent: string | null): string {
 		const id = this.newID();
 
-		let flatLayout: FlatLayout;
-
 		switch (layout.split) {
 			case 'horizontal':
 			case 'vertical':
@@ -297,16 +277,16 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 				if (children.length < 2) {
 					throw new Error('Split layout with single child');
 				}
-				flatLayout = {
+				this.setLayout({
 					split,
 					children: children.map((c) => this.flattenLayout(c, id)),
 					parent,
 					id,
-				};
+				});
 				break;
 
 			case 'none':
-				flatLayout = DefaultLayoutManager.clonePaneLayout(layout, parent, id);
+				this.setLayout(DefaultLayoutManager.clonePaneLayout(layout, parent, id));
 				for (const tab of layout.order) {
 					this.tabPanes.set(tab, id);
 				}
@@ -315,8 +295,6 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 			default:
 				throw new Error("Layout with invalid 'split' property");
 		}
-
-		this.layouts.set(id, flatLayout);
 
 		return id;
 	}
@@ -347,19 +325,27 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 		return this.layouts.get(id) || corrupt();
 	}
 
-	private checkUnsplit(id: string): void {
+	private getSplitLayout(id: string): FlatSplitLayout {
+		const layout = this.getLayout(id);
+		if (layout.split === 'none') {
+			return corrupt();
+		}
+		return layout;
+	}
+
+	private getPaneLayout(id: string): FlatPaneLayout {
 		const layout = this.getLayout(id);
 		if (layout.split !== 'none') {
 			return corrupt();
 		}
+		return layout;
+	}
 
+	private checkUnsplit(id: string): void {
+		const layout = this.getPaneLayout(id);
 		if (layout.order.length > 0 || layout.parent === null) return;
 
-		const parent = this.getLayout(layout.parent);
-		if (parent.split === 'none') {
-			return corrupt();
-		}
-
+		const parent = this.getSplitLayout(layout.parent);
 		const remaining = removeElement(parent.children, id);
 
 		if (remaining.length > 1) {
