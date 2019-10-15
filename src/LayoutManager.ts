@@ -354,14 +354,20 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 			const otherID = remaining[0];
 			const other = this.getLayout(otherID);
 
-			if (other.split === 'none') {
+			this.layouts.delete(otherID);
+
+			this.setLayout({ ...other, parent: parent.parent, id: parent.id });
+
+			if (other.split !== 'none') {
+				for (const child of other.children) {
+					const childLayout = this.getLayout(child);
+					this.setLayout({ ...childLayout, parent: parent.id });
+				}
+			} else {
 				for (const tab of other.order) {
 					this.tabPanes.set(tab, parent.id);
 				}
 			}
-
-			this.layouts.delete(otherID);
-			this.setLayout({ ...other, parent: parent.parent, id: parent.id });
 		}
 
 		this.layouts.delete(id);
