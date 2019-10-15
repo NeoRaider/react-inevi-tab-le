@@ -6,10 +6,6 @@ export function appendElement<T>(array: ReadonlyArray<T>, el: T): ReadonlyArray<
 	return [...array, el];
 }
 
-export function replaceElementAt<T>(array: ReadonlyArray<T>, el: T, index: number): ReadonlyArray<T> {
-	return [...array.slice(0, index), el, ...array.slice(index + 1)];
-}
-
 export function removeElementAt<T>(array: ReadonlyArray<T>, index: number): ReadonlyArray<T> {
 	return [...array.slice(0, index), ...array.slice(index + 1)];
 }
