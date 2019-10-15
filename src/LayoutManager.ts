@@ -228,39 +228,60 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 		}
 
 		const destLayout = this.getPaneLayout(dest);
+		if (source === dest && destLayout.order.length === 1) {
+			return true;
+		}
+
+		const split = dirToSplit(dir);
+
+		let index = 0;
+		let parentLayout: FlatSplitLayout | undefined;
 
 		if (destLayout.parent !== null) {
-			const parentLayout = this.getSplitLayout(destLayout.parent);
+			const destParentLayout = this.getSplitLayout(destLayout.parent);
 
-			if (parentLayout.split === dirToSplit(dir)) {
-				let index = parentLayout.children.indexOf(dest);
+			if (destParentLayout.split === split) {
+				parentLayout = destParentLayout;
+
+				index = parentLayout.children.indexOf(dest);
 				if (index < 0) {
 					return corrupt();
 				}
-
-				if (dir === 'right' || dir === 'bottom') {
-					index++;
-				}
-
-				const newLayout = DefaultLayoutManager.clonePaneLayout(
-					emptyLayout,
-					parentLayout.id,
-					this.newID(),
-				);
-				this.setLayout(newLayout);
-				this.setLayout({
-					...parentLayout,
-					children: insertElementAt(parentLayout.children, newLayout.id, index),
-				});
-
-				if (!this.moveTab(tab, newLayout.id, 0)) {
-					corrupt();
-				}
-				return true;
 			}
 		}
 
-		return false;
+		if (!parentLayout) {
+			const movedLayout = DefaultLayoutManager.clonePaneLayout(destLayout, dest, this.newID());
+			this.setLayout(movedLayout);
+
+			for (const tab of destLayout.order) {
+				this.tabPanes.set(tab, movedLayout.id);
+			}
+
+			parentLayout = {
+				id: destLayout.id,
+				parent: destLayout.parent,
+				split,
+				children: [movedLayout.id],
+			};
+			this.setLayout(parentLayout);
+		}
+
+		if (dir === 'right' || dir === 'bottom') {
+			index++;
+		}
+
+		const newLayout = DefaultLayoutManager.clonePaneLayout(emptyLayout, parentLayout.id, this.newID());
+		this.setLayout(newLayout);
+		this.setLayout({
+			...parentLayout,
+			children: insertElementAt(parentLayout.children, newLayout.id, index),
+		});
+
+		if (!this.moveTab(tab, newLayout.id, 0)) {
+			corrupt();
+		}
+		return true;
 	}
 
 	protected newID(): string {
