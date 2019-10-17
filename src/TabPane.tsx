@@ -43,7 +43,11 @@ export function InternalTabPane({
 }
 
 export function TabPane(props: TabViewProps): JSX.Element {
-	const { layout } = props;
+	const { id, layouts } = props;
+
+	// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+	const layout = layouts.get(id)!;
+
 	if (layout.split !== 'none') {
 		throw new Error('TabPane does not support split layouts');
 	}

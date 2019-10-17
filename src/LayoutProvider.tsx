@@ -7,16 +7,16 @@ import { Layout, LayoutManager, Direction } from './LayoutManager';
 import { Tab } from './Tab';
 
 interface LayoutState<T> {
-	layout: Layout;
+	layouts: ReadonlyMap<string, Layout>;
 	tabs: ReadonlyMap<string, T>;
 }
 
 function useLayout<T>(layoutManager: LayoutManager<T>): LayoutState<T> | null {
 	const [layoutState, setLayoutState] = useState<LayoutState<T> | null>(null);
 
-	const handleUpdate = (layout: Layout, tabs: ReadonlyMap<string, T>): void => {
+	const handleUpdate = (layouts: ReadonlyMap<string, Layout>, tabs: ReadonlyMap<string, T>): void => {
 		setLayoutState({
-			layout,
+			layouts,
 			tabs,
 		});
 	};
@@ -45,7 +45,8 @@ function useRefMap<K, V1, V2>(inMap: ReadonlyMap<K, V1>, f: (v: V1, k: K) => V2)
 
 export interface TabViewProps {
 	realm: symbol;
-	layout: Layout;
+	id: string;
+	layouts: ReadonlyMap<string, Layout>;
 	tabs: ReadonlyMap<string, Tab>;
 	portals: ReadonlyMap<string, PortalNode>;
 
@@ -77,7 +78,7 @@ export function LayoutProvider({ layoutManager, view }: LayoutProviderProps): JS
 	}
 
 	const View = view;
-	const { layout } = layoutState;
+	const { layouts } = layoutState;
 
 	const portals = new Map<string, PortalNode>();
 	const inPortals: JSX.Element[] = [];
@@ -93,7 +94,8 @@ export function LayoutProvider({ layoutManager, view }: LayoutProviderProps): JS
 	return (
 		<>
 			<View
-				layout={layout}
+				id={'0'}
+				layouts={layouts}
 				realm={realm.current}
 				tabs={tabs}
 				portals={portals}

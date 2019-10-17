@@ -12,9 +12,7 @@ interface TabSplitAreaProps extends TabViewProps {
 	ignore?: string;
 }
 
-function TabSplitArea({ realm, layout, dir, ignore, onMoveSplit }: TabSplitAreaProps): JSX.Element {
-	const { id } = layout;
-
+function TabSplitArea({ realm, id, dir, ignore, onMoveSplit }: TabSplitAreaProps): JSX.Element {
 	return (
 		<>
 			<TabDropArea
@@ -31,11 +29,14 @@ function TabSplitArea({ realm, layout, dir, ignore, onMoveSplit }: TabSplitAreaP
 }
 
 export function TabLayout(props: TabViewProps): JSX.Element {
-	const { layout } = props;
+	const { id, layouts } = props;
+
+	// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+	const layout = layouts.get(id)!;
 
 	if (layout.split === 'none') {
 		const { realm, onMove } = props;
-		const { id, order } = layout;
+		const { order } = layout;
 
 		const ignore = order.length === 1 ? order[0] : undefined;
 
@@ -65,7 +66,7 @@ export function TabLayout(props: TabViewProps): JSX.Element {
 		<div className='tabLayout'>
 			<SplitPane split={split} minSize={100}>
 				{children.map((child) => (
-					<TabLayout key={child.id} {...props} layout={child} />
+					<TabLayout {...props} key={child} id={child} />
 				))}
 			</SplitPane>
 		</div>
