@@ -28,6 +28,7 @@
 		"typescript": "^3.6.3"
 	},
 	"dependencies": {
+		"immutable": "^4.0.0-rc.12",
 		"react": "^16.10.1",
 		"react-dnd": "^9.4.0",
 		"react-dom": "^16.10.1",

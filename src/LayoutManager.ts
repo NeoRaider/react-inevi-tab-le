@@ -1,3 +1,5 @@
+import { Map } from 'immutable';
+
 import { appendElement, insertElementAt, moveElementAt, removeElement, removeElementAt } from './util';
 
 export type Split = 'horizontal' | 'vertical';
@@ -120,8 +122,8 @@ function flattenLayout(
 	newID(): string;
 } {
 	const newID = idGen();
-	const layouts = new Map<string, FlatLayout>();
-	const tabPanes = new Map<string, string>();
+	let layouts = Map<string, FlatLayout>();
+	let tabPanes = Map<string, string>();
 
 	function flatten(layout: InputLayout, parent: string | null): string {
 		const id = newID();
@@ -133,18 +135,19 @@ function flattenLayout(
 				if (children.length < 2) {
 					throw new Error('Split layout with single child');
 				}
-				layouts.set(id, {
+				const flatChildren = children.map((c) => flatten(c, id));
+				layouts = layouts.set(id, {
 					split,
-					children: children.map((c) => flatten(c, id)),
+					children: flatChildren,
 					parent,
 					id,
 				});
 				break;
 
 			case 'none':
-				layouts.set(id, clonePaneLayout({ ...layout, parent, id }));
+				layouts = layouts.set(id, clonePaneLayout({ ...layout, parent, id }));
 				for (const tab of layout.order) {
-					tabPanes.set(tab, id);
+					tabPanes = tabPanes.set(tab, id);
 				}
 				break;
 
@@ -170,8 +173,8 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 
 	private listeners: ReadonlyArray<LayoutUpdateListener<T>> = [];
 
-	public constructor(tabs: Map<string, T> = new Map(), layout: InputLayout = emptyLayout) {
-		this.tabs = new Map(tabs);
+	public constructor(tabs: Map<string, T> = Map(), layout: InputLayout = emptyLayout) {
+		this.tabs = tabs;
 
 		const { root, layouts, tabPanes, newID } = flattenLayout(layout);
 
@@ -224,8 +227,8 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 		}
 
 		this.setLayout(newLayout);
-		this.tabs.delete(tab);
-		this.tabPanes.delete(tab);
+		this.tabs = this.tabs.delete(tab);
+		this.tabPanes = this.tabPanes.delete(tab);
 
 		this.checkUnsplit(pane);
 
@@ -269,7 +272,7 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 
 			this.setLayout(newSourceLayout);
 			this.setLayout(newDestLayout);
-			this.tabPanes.set(tab, dest);
+			this.tabPanes = this.tabPanes.set(tab, dest);
 
 			this.checkUnsplit(source);
 		}
@@ -312,7 +315,7 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 			this.setLayout(movedLayout);
 
 			for (const tab of destLayout.order) {
-				this.tabPanes.set(tab, movedLayout.id);
+				this.tabPanes = this.tabPanes.set(tab, movedLayout.id);
 			}
 
 			parentLayout = {
@@ -360,7 +363,7 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 	}
 
 	private setLayout(layout: FlatLayout): void {
-		this.layouts.set(layout.id, layout);
+		this.layouts = this.layouts.set(layout.id, layout);
 	}
 
 	private getLayout(id: string): FlatLayout {
@@ -396,7 +399,7 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 			const otherID = remaining[0];
 			const other = this.getLayout(otherID);
 
-			this.layouts.delete(otherID);
+			this.layouts = this.layouts.delete(otherID);
 
 			this.setLayout({ ...other, parent: parent.parent, id: parent.id });
 
@@ -407,20 +410,19 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 				}
 			} else {
 				for (const tab of other.order) {
-					this.tabPanes.set(tab, parent.id);
+					this.tabPanes = this.tabPanes.set(tab, parent.id);
 				}
 			}
 		}
 
-		this.layouts.delete(id);
+		this.layouts = this.layouts.delete(id);
 	}
 
 	private updateListeners(listeners: ReadonlyArray<LayoutUpdateListener<T>>): void {
 		const layout = this.unflattenLayout(this.root);
-		const tabs = new Map(this.tabs);
 
 		for (const listener of listeners) {
-			listener(layout, tabs);
+			listener(layout, this.tabs);
 		}
 	}
 
