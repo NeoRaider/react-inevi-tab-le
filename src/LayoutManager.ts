@@ -30,15 +30,15 @@ export interface NestedPaneLayout {
 export type NestedLayout = NestedPaneLayout | NestedSplitLayout;
 
 export interface SplitLayout {
-	readonly id: string;
-	readonly parent: string | null;
+	readonly id: number;
+	readonly parent: number;
 	readonly split: Split;
-	readonly children: ReadonlyArray<string>;
+	readonly children: ReadonlyArray<number>;
 }
 
 export interface PaneLayout {
-	readonly id: string;
-	readonly parent: string | null;
+	readonly id: number;
+	readonly parent: number;
 	readonly split: 'none';
 	readonly order: ReadonlyArray<string>;
 	readonly active: string | null;
@@ -46,7 +46,7 @@ export interface PaneLayout {
 
 export type Layout = PaneLayout | SplitLayout;
 
-export type LayoutUpdateListener<T> = (layout: ReadonlyMap<string, Layout>, tabs: ReadonlyMap<string, T>) => void;
+export type LayoutUpdateListener<T> = (layout: ReadonlyMap<number, Layout>, tabs: ReadonlyMap<string, T>) => void;
 
 export interface LayoutManager<T> {
 	addUpdateListener(listener: LayoutUpdateListener<T>): void;
@@ -54,8 +54,8 @@ export interface LayoutManager<T> {
 
 	selectTab(tab: string): boolean;
 	closeTab(tab: string): boolean;
-	moveTab(tab: string, dest: string, pos: number): boolean;
-	moveTabSplit(tab: string, dest: string, dir: Direction): boolean;
+	moveTab(tab: string, dest: number, pos: number): boolean;
+	moveTabSplit(tab: string, dest: number, dir: Direction): boolean;
 }
 
 function corrupt(): never {
@@ -87,23 +87,23 @@ function removeTab(layout: PaneLayout, tab: string): PaneLayout | null {
 	};
 }
 
-function idGen(n = 0): () => string {
-	return (): string => (n++).toString(36);
+function idGen(n: number): () => number {
+	return (): number => n++;
 }
 
 function fromNested(
 	layout: NestedLayout,
 ): {
-	layouts: Map<string, Layout>;
-	tabPanes: Map<string, string>;
+	layouts: Map<number, Layout>;
+	tabPanes: Map<string, number>;
 
-	newID(): string;
+	newID(): number;
 } {
-	const newID = idGen();
-	let layouts = Map<string, Layout>();
-	let tabPanes = Map<string, string>();
+	const newID = idGen(1);
+	let layouts = Map<number, Layout>();
+	let tabPanes = Map<string, number>();
 
-	function flatten(layout: NestedLayout, parent: string | null): string {
+	function flatten(layout: NestedLayout, parent: number): number {
 		const id = newID();
 		switch (layout.split) {
 			case 'horizontal':
@@ -135,7 +135,7 @@ function fromNested(
 		return id;
 	}
 
-	flatten(layout, null);
+	flatten(layout, 0);
 
 	return { layouts, tabPanes, newID };
 }
@@ -143,9 +143,9 @@ function fromNested(
 export class DefaultLayoutManager<T> implements LayoutManager<T> {
 	private tabs: Map<string, T>;
 
-	private layouts: Map<string, Layout>;
-	private tabPanes: Map<string, string>;
-	private newID: () => string;
+	private layouts: Map<number, Layout>;
+	private tabPanes: Map<string, number>;
+	private newID: () => number;
 
 	private listeners: ReadonlyArray<LayoutUpdateListener<T>> = [];
 
@@ -211,7 +211,7 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 		return true;
 	}
 
-	public moveTab(tab: string, dest: string, pos: number): boolean {
+	public moveTab(tab: string, dest: number, pos: number): boolean {
 		const source = this.tabPanes.get(tab);
 		if (!source) {
 			return false;
@@ -256,7 +256,7 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 		return true;
 	}
 
-	public moveTabSplit(tab: string, dest: string, dir: Direction): boolean {
+	public moveTabSplit(tab: string, dest: number, dir: Direction): boolean {
 		const source = this.tabPanes.get(tab);
 		if (!source) {
 			return false;
@@ -329,11 +329,11 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 		this.layouts = this.layouts.set(layout.id, layout);
 	}
 
-	private getLayout(id: string): Layout {
+	private getLayout(id: number): Layout {
 		return this.layouts.get(id) || corrupt();
 	}
 
-	private getSplitLayout(id: string): SplitLayout {
+	private getSplitLayout(id: number): SplitLayout {
 		const layout = this.getLayout(id);
 		if (layout.split === 'none') {
 			return corrupt();
@@ -341,7 +341,7 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 		return layout;
 	}
 
-	private getPaneLayout(id: string): PaneLayout {
+	private getPaneLayout(id: number): PaneLayout {
 		const layout = this.getLayout(id);
 		if (layout.split !== 'none') {
 			return corrupt();
@@ -349,7 +349,7 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 		return layout;
 	}
 
-	private checkUnsplit(id: string): void {
+	private checkUnsplit(id: number): void {
 		const layout = this.getPaneLayout(id);
 		if (layout.order.length > 0 || layout.parent === null) return;
 

@@ -7,14 +7,14 @@ import { Layout, LayoutManager, Direction } from './LayoutManager';
 import { Tab } from './Tab';
 
 interface LayoutState<T> {
-	layouts: ReadonlyMap<string, Layout>;
+	layouts: ReadonlyMap<number, Layout>;
 	tabs: ReadonlyMap<string, T>;
 }
 
 function useLayout<T>(layoutManager: LayoutManager<T>): LayoutState<T> | null {
 	const [layoutState, setLayoutState] = useState<LayoutState<T> | null>(null);
 
-	const handleUpdate = (layouts: ReadonlyMap<string, Layout>, tabs: ReadonlyMap<string, T>): void => {
+	const handleUpdate = (layouts: ReadonlyMap<number, Layout>, tabs: ReadonlyMap<string, T>): void => {
 		setLayoutState({
 			layouts,
 			tabs,
@@ -45,15 +45,15 @@ function useRefMap<K, V1, V2>(inMap: ReadonlyMap<K, V1>, f: (v: V1, k: K) => V2)
 
 export interface TabViewProps {
 	realm: symbol;
-	id: string;
-	layouts: ReadonlyMap<string, Layout>;
+	id: number;
+	layouts: ReadonlyMap<number, Layout>;
 	tabs: ReadonlyMap<string, Tab>;
 	portals: ReadonlyMap<string, PortalNode>;
 
 	onSelect(tab: string): void;
 	onClose(tab: string): void;
-	onMove(tab: string, dest: string, pos: number): void;
-	onMoveSplit(tab: string, dest: string, dir: Direction): void;
+	onMove(tab: string, dest: number, pos: number): void;
+	onMoveSplit(tab: string, dest: number, dir: Direction): void;
 }
 
 export interface LayoutProviderProps {
@@ -94,7 +94,7 @@ export function LayoutProvider({ layoutManager, view }: LayoutProviderProps): JS
 	return (
 		<>
 			<View
-				id={'0'}
+				id={1}
 				layouts={layouts}
 				realm={realm.current}
 				tabs={tabs}
@@ -105,10 +105,10 @@ export function LayoutProvider({ layoutManager, view }: LayoutProviderProps): JS
 				onClose={(tab): void => {
 					layoutManager.closeTab(tab);
 				}}
-				onMove={(tab: string, dest: string, pos: number): void => {
+				onMove={(tab: string, dest: number, pos: number): void => {
 					layoutManager.moveTab(tab, dest, pos);
 				}}
-				onMoveSplit={(tab: string, dest: string, dir: Direction): void => {
+				onMoveSplit={(tab: string, dest: number, dir: Direction): void => {
 					layoutManager.moveTabSplit(tab, dest, dir);
 				}}
 			/>
