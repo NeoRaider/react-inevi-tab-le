@@ -3,22 +3,14 @@ const { useEffect, useState, useRef } = React;
 
 import { PortalNode, createPortalNode, InPortal } from 'react-reverse-portal';
 
-import { Layout, LayoutManager, Direction } from './LayoutManager';
+import { LayoutManager, Direction, LayoutMap } from './LayoutManager';
 import { Tab } from './Tab';
 
-interface LayoutState<T> {
-	layouts: ReadonlyMap<number, Layout>;
-	tabs: ReadonlyMap<string, T>;
-}
+function useLayout(layoutManager: LayoutManager): LayoutMap | null {
+	const [layoutState, setLayoutState] = useState<LayoutMap | null>(null);
 
-function useLayout<T>(layoutManager: LayoutManager<T>): LayoutState<T> | null {
-	const [layoutState, setLayoutState] = useState<LayoutState<T> | null>(null);
-
-	const handleUpdate = (layouts: ReadonlyMap<number, Layout>, tabs: ReadonlyMap<string, T>): void => {
-		setLayoutState({
-			layouts,
-			tabs,
-		});
+	const handleUpdate = (layouts: LayoutMap): void => {
+		setLayoutState(layouts);
 	};
 
 	useEffect(() => {
@@ -46,7 +38,7 @@ function useRefMap<K, V1, V2>(inMap: ReadonlyMap<K, V1>, f: (v: V1, k: K) => V2)
 export interface TabViewProps {
 	realm: symbol;
 	id: number;
-	layouts: ReadonlyMap<number, Layout>;
+	layouts: LayoutMap;
 	tabs: ReadonlyMap<string, Tab>;
 	portals: ReadonlyMap<string, PortalNode>;
 
@@ -57,15 +49,15 @@ export interface TabViewProps {
 }
 
 export interface LayoutProviderProps {
-	layoutManager: LayoutManager<Tab>;
+	layoutManager: LayoutManager;
+	tabs: ReadonlyMap<string, Tab>;
 
 	view: React.ComponentType<TabViewProps>;
 }
 
-export function LayoutProvider({ layoutManager, view }: LayoutProviderProps): JSX.Element | null {
+export function LayoutProvider({ layoutManager, tabs, view }: LayoutProviderProps): JSX.Element | null {
 	const realm = useRef(Symbol('Realm'));
-	const layoutState = useLayout(layoutManager);
-	const tabs: ReadonlyMap<string, Tab> = layoutState ? layoutState.tabs : new Map();
+	const layouts = useLayout(layoutManager);
 
 	const tabPortals = useRefMap(tabs, (tab): [Tab, PortalNode] => {
 		const portal = createPortalNode();
@@ -73,12 +65,11 @@ export function LayoutProvider({ layoutManager, view }: LayoutProviderProps): JS
 		return [tab, portal];
 	});
 
-	if (!layoutState) {
+	if (!layouts) {
 		return null;
 	}
 
 	const View = view;
-	const { layouts } = layoutState;
 
 	const portals = new Map<string, PortalNode>();
 	const inPortals: JSX.Element[] = [];

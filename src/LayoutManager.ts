@@ -45,12 +45,13 @@ export interface PaneLayout {
 }
 
 export type Layout = PaneLayout | SplitLayout;
+export type LayoutMap = ReadonlyMap<number, Layout>;
 
-export type LayoutUpdateListener<T> = (layout: ReadonlyMap<number, Layout>, tabs: ReadonlyMap<string, T>) => void;
+export type LayoutUpdateListener = (layouts: LayoutMap) => void;
 
-export interface LayoutManager<T> {
-	addUpdateListener(listener: LayoutUpdateListener<T>): void;
-	removeUpdateListener(listener: LayoutUpdateListener<T>): void;
+export interface LayoutManager {
+	addUpdateListener(listener: LayoutUpdateListener): void;
+	removeUpdateListener(listener: LayoutUpdateListener): void;
 
 	selectTab(tab: string): boolean;
 	closeTab(tab: string): boolean;
@@ -140,18 +141,14 @@ function fromNested(
 	return { layouts, tabPanes, newID };
 }
 
-export class DefaultLayoutManager<T> implements LayoutManager<T> {
-	private tabs: Map<string, T>;
-
+export class DefaultLayoutManager implements LayoutManager {
 	private layouts: Map<number, Layout>;
 	private tabPanes: Map<string, number>;
 	private newID: () => number;
 
-	private listeners: ReadonlyArray<LayoutUpdateListener<T>> = [];
+	private listeners: ReadonlyArray<LayoutUpdateListener> = [];
 
-	public constructor(tabs: Map<string, T> = Map(), layout: NestedLayout) {
-		this.tabs = tabs;
-
+	public constructor(layout: NestedLayout) {
 		const { layouts, tabPanes, newID } = fromNested(layout);
 
 		this.layouts = layouts;
@@ -159,12 +156,12 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 		this.newID = newID;
 	}
 
-	public addUpdateListener(listener: LayoutUpdateListener<T>): void {
+	public addUpdateListener(listener: LayoutUpdateListener): void {
 		this.listeners = appendElement(this.listeners, listener);
 		this.updateListeners([listener]);
 	}
 
-	public removeUpdateListener(listener: LayoutUpdateListener<T>): void {
+	public removeUpdateListener(listener: LayoutUpdateListener): void {
 		this.listeners = removeElement(this.listeners, listener);
 	}
 
@@ -202,7 +199,6 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 		}
 
 		this.setLayout(newLayout);
-		this.tabs = this.tabs.delete(tab);
 		this.tabPanes = this.tabPanes.delete(tab);
 
 		this.checkUnsplit(pane);
@@ -381,9 +377,9 @@ export class DefaultLayoutManager<T> implements LayoutManager<T> {
 		this.layouts = this.layouts.delete(id);
 	}
 
-	private updateListeners(listeners: ReadonlyArray<LayoutUpdateListener<T>>): void {
+	private updateListeners(listeners: ReadonlyArray<LayoutUpdateListener>): void {
 		for (const listener of listeners) {
-			listener(this.layouts, this.tabs);
+			listener(this.layouts);
 		}
 	}
 
