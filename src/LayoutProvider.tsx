@@ -3,7 +3,9 @@ const { useReducer, useRef } = React;
 
 import { PortalNode, createPortalNode, InPortal } from 'react-reverse-portal';
 
-import { LayoutMap, layoutReducer, LayoutAction } from './LayoutManager';
+import { LayoutMap } from './layout/types';
+import { LayoutAction } from './layout/actions';
+import { layoutReducer } from './layout/reducer';
 import { Tab } from './Tab';
 
 function useRefMap<K, V1, V2>(inMap: ReadonlyMap<K, V1>, f: (v: V1, k: K) => V2): Map<K, V2> {

@@ -2,10 +2,12 @@ import * as React from 'react';
 
 import { SplitPane } from 'react-multi-split-pane';
 
+import { Direction } from './layout/types';
+import { moveTabSplit, moveTab } from './layout/actions';
+
 import { InternalTabPane } from './TabPane';
 import { TabViewProps } from './LayoutProvider';
 import { TabDropArea } from './TabDropArea';
-import { Direction, moveTabSplit, moveTab } from './LayoutManager';
 
 interface TabSplitAreaProps extends TabViewProps {
 	dir: Direction;
