@@ -25,11 +25,7 @@ function corrupt(): never {
 	throw new Error('Data corruption');
 }
 
-function selectLayoutTab(layout: Layout, tab: string): Layout {
-	if (layout.split !== 'none') {
-		return layout;
-	}
-
+function selectPaneTab(layout: PaneLayout, tab: string): PaneLayout {
 	if (layout.order.indexOf(tab) < 0) {
 		return layout;
 	}
@@ -37,11 +33,7 @@ function selectLayoutTab(layout: Layout, tab: string): Layout {
 	return { ...layout, active: tab };
 }
 
-function insertLayoutTab(layout: Layout, tab: string, pos: number): Layout {
-	if (layout.split !== 'none') {
-		return layout;
-	}
-
+function insertPaneTab(layout: PaneLayout, tab: string, pos: number): PaneLayout {
 	return {
 		...layout,
 		order: insertElementAt(layout.order, tab, pos),
@@ -49,11 +41,7 @@ function insertLayoutTab(layout: Layout, tab: string, pos: number): Layout {
 	};
 }
 
-function moveLayoutTab(layout: Layout, tab: string, pos: number): Layout {
-	if (layout.split !== 'none') {
-		return layout;
-	}
-
+function movePaneTab(layout: PaneLayout, tab: string, pos: number): PaneLayout {
 	const { order } = layout;
 	const index = order.indexOf(tab);
 	if (index < 0) {
@@ -66,11 +54,7 @@ function moveLayoutTab(layout: Layout, tab: string, pos: number): Layout {
 	};
 }
 
-function removeLayoutTab(layout: Layout, tab: string): Layout {
-	if (layout.split !== 'none') {
-		return layout;
-	}
-
+function removePaneTab(layout: PaneLayout, tab: string): PaneLayout {
 	let { active, order } = layout;
 
 	const index = order.indexOf(tab);
@@ -127,6 +111,15 @@ function getPaneLayout(layouts: LayoutMap, id: number): PaneLayout | null {
 		return null;
 	}
 	return layout;
+}
+
+// Similar to Map.prototype.update(), but ignores missing elements and split layouts
+function updatePaneLayout(layouts: LayoutMap, id: number, updater: (layout: PaneLayout) => PaneLayout): LayoutMap {
+	const layout = layouts.get(id);
+	if (layout && layout.split === 'none') {
+		layouts = layouts.set(id, updater(layout));
+	}
+	return layouts;
 }
 
 function reparentChildren(layouts: LayoutMap, children: ReadonlyArray<number>, parent: number): LayoutMap {
@@ -206,17 +199,17 @@ type LayoutActionHandlerMap = {
 
 const HANDLERS: LayoutActionHandlerMap = {
 	selectTab(layouts: LayoutMap, { tab, pane }: LayoutActionSelectTab): LayoutMap {
-		return layouts.update(pane, (layout) => selectLayoutTab(layout, tab));
+		return updatePaneLayout(layouts, pane, (layout) => selectPaneTab(layout, tab));
 	},
 
 	closeTab(layouts: LayoutMap, { tab, pane }: LayoutActionCloseTab): LayoutMap {
-		layouts = layouts.update(pane, (layout) => removeLayoutTab(layout, tab));
+		layouts = updatePaneLayout(layouts, pane, (layout) => removePaneTab(layout, tab));
 		return checkUnsplit(layouts, pane);
 	},
 
 	moveTab(layouts: LayoutMap, { tab, source, dest, pos }: LayoutActionMoveTab): LayoutMap {
 		if (source === dest) {
-			return layouts.update(source, (layout) => moveLayoutTab(layout, tab, pos));
+			return updatePaneLayout(layouts, source, (layout) => movePaneTab(layout, tab, pos));
 		}
 
 		const sourceLayout = getPaneLayout(layouts, source);
@@ -226,8 +219,8 @@ const HANDLERS: LayoutActionHandlerMap = {
 			return layouts;
 		}
 
-		layouts = layouts.set(source, removeLayoutTab(sourceLayout, tab));
-		layouts = layouts.set(dest, insertLayoutTab(destLayout, tab, pos));
+		layouts = layouts.set(source, removePaneTab(sourceLayout, tab));
+		layouts = layouts.set(dest, insertPaneTab(destLayout, tab, pos));
 
 		return checkUnsplit(layouts, source);
 	},
