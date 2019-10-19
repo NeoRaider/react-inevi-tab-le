@@ -1,6 +1,6 @@
 import { insertElementAt, moveElementAt, removeElement, removeElementAt } from '../util';
 
-import { Split, Direction, Layout, SplitLayout, PaneLayout, LayoutMap } from './types';
+import { Split, Direction, SplitLayout, PaneLayout, LayoutMap, Layout } from './types';
 import {
 	LayoutAction,
 	LayoutActionSelectTab,
@@ -24,18 +24,17 @@ function corrupt(): never {
 	throw new Error('Data corruption');
 }
 
-function removeTab(layout: PaneLayout, tab: string): PaneLayout | null {
-	const { active: prevActive, order: prevOrder } = layout;
+function paneRemoveTab(layout: PaneLayout, tab: string): PaneLayout {
+	let { active, order } = layout;
 
-	const index = prevOrder.indexOf(tab);
+	const index = order.indexOf(tab);
 	if (index < 0) {
-		return null;
+		return layout;
 	}
 
-	const order = removeElementAt(prevOrder, index);
+	order = removeElementAt(order, index);
 
-	let active = prevActive;
-	if (tab === prevActive) {
+	if (tab === active) {
 		active = order[Math.min(index, order.length - 1)];
 	}
 	if (active === undefined) {
@@ -49,6 +48,19 @@ function removeTab(layout: PaneLayout, tab: string): PaneLayout | null {
 	};
 }
 
+function paneMoveTab(layout: PaneLayout, tab: string, pos: number): PaneLayout {
+	const { order } = layout;
+	const index = order.indexOf(tab);
+	if (index < 0) {
+		return layout;
+	}
+
+	return {
+		...layout,
+		order: moveElementAt(order, index, pos),
+	};
+}
+
 function unusedID(layouts: LayoutMap): number {
 	for (let i = 1; ; i++) {
 		if (!layouts.has(i)) {
@@ -57,54 +69,56 @@ function unusedID(layouts: LayoutMap): number {
 	}
 }
 
-function getLayout(layouts: LayoutMap, id: number): Layout {
-	return layouts.get(id) || corrupt();
-}
-
-function getSplitLayout(layouts: LayoutMap, id: number): SplitLayout {
-	const layout = getLayout(layouts, id);
-	if (layout.split === 'none') {
-		return corrupt();
+function getSplitLayout(layouts: LayoutMap, id: number): SplitLayout | null {
+	const layout = layouts.get(id);
+	if (!layout || layout.split === 'none') {
+		return null;
 	}
 	return layout;
 }
 
-function getPaneLayout(layouts: LayoutMap, id: number): PaneLayout {
-	const layout = getLayout(layouts, id);
-	if (layout.split !== 'none') {
-		return corrupt();
+function getPaneLayout(layouts: LayoutMap, id: number): PaneLayout | null {
+	const layout = layouts.get(id);
+	if (!layout || layout.split !== 'none') {
+		return null;
 	}
 	return layout;
 }
 
-function checkUnsplit(layouts: LayoutMap, id: number): LayoutMap {
-	const layout = getPaneLayout(layouts, id);
-	if (layout.order.length > 0 || !layout.parent) {
+function getParentLayout(layouts: LayoutMap, layout: Layout): [number, SplitLayout] {
+	return [layout.parent, getSplitLayout(layouts, layout.parent) || corrupt()];
+}
+
+function checkUnsplit(layouts: LayoutMap, pane: number): LayoutMap {
+	const paneLayout = getPaneLayout(layouts, pane);
+	if (!paneLayout || paneLayout.order.length > 0 || !paneLayout.parent) {
 		return layouts;
 	}
 
-	const parent = getSplitLayout(layouts, layout.parent);
-	const remaining = removeElement(parent.children, id);
+	const [parent, parentLayout] = getParentLayout(layouts, paneLayout);
+
+	layouts = layouts.delete(pane);
+
+	const remaining = removeElement(parentLayout.children, pane);
 
 	if (remaining.length > 1) {
-		layouts = layouts.set(layout.parent, { ...parent, children: remaining });
-	} else {
-		const otherID = remaining[0];
-		const other = getLayout(layouts, otherID);
+		return layouts.set(parent, { ...parentLayout, children: remaining });
+	}
 
-		layouts = layouts.delete(otherID);
+	const other = remaining[0];
+	const otherLayout = layouts.get(other) || corrupt();
+	layouts = layouts.delete(other);
 
-		layouts = layouts.set(layout.parent, { ...other, parent: parent.parent });
+	layouts = layouts.set(parent, { ...otherLayout, parent: parentLayout.parent });
 
-		if (other.split !== 'none') {
-			for (const child of other.children) {
-				const childLayout = getLayout(layouts, child);
-				layouts = layouts.set(child, { ...childLayout, parent: layout.parent });
-			}
+	if (otherLayout.split !== 'none') {
+		for (const child of otherLayout.children) {
+			const childLayout = layouts.get(child) || corrupt();
+			layouts = layouts.set(child, { ...childLayout, parent });
 		}
 	}
 
-	return layouts.delete(id);
+	return layouts;
 }
 
 type LayoutActionType = LayoutAction['type'];
@@ -116,100 +130,82 @@ type LayoutActionHandlerMap = {
 
 const HANDLERS: LayoutActionHandlerMap = {
 	selectTab(layouts: LayoutMap, { tab, pane }: LayoutActionSelectTab): LayoutMap {
-		const layout = getPaneLayout(layouts, pane);
-
-		if (layout.order.indexOf(tab) < 0) {
-			return layouts;
-		}
-
-		return layouts.set(pane, {
-			...layout,
-			active: tab,
+		return layouts.update(pane, (layout) => {
+			if (layout.split !== 'none' || layout.order.indexOf(tab) < 0) {
+				return layout;
+			}
+			return { ...layout, active: tab };
 		});
 	},
 
 	closeTab(layouts: LayoutMap, { tab, pane }: LayoutActionCloseTab): LayoutMap {
-		const layout = getPaneLayout(layouts, pane);
-
-		const newLayout = removeTab(layout, tab);
-		if (!newLayout) {
-			return layouts;
-		}
-
-		layouts = layouts.set(pane, newLayout);
+		layouts = layouts.update(pane, (layout) => {
+			if (layout.split !== 'none') {
+				return layout;
+			}
+			return paneRemoveTab(layout, tab);
+		});
 		return checkUnsplit(layouts, pane);
 	},
 
 	moveTab(layouts: LayoutMap, { tab, source, dest, pos }: LayoutActionMoveTab): LayoutMap {
-		const sourceLayout = getPaneLayout(layouts, source);
-
 		if (source === dest) {
-			const { order } = sourceLayout;
-			const index = order.indexOf(tab);
-			if (index < 0) {
-				return layouts;
-			}
-
-			layouts = layouts.set(source, {
-				...sourceLayout,
-				order: moveElementAt(order, index, pos),
+			return layouts.update(source, (layout) => {
+				if (layout.split !== 'none' || layout.order.indexOf(tab) < 0) {
+					return layout;
+				}
+				return paneMoveTab(layout, tab, pos);
 			});
-
-			return layouts;
 		}
 
+		const sourceLayout = getPaneLayout(layouts, source);
 		const destLayout = getPaneLayout(layouts, dest);
 
-		const newSourceLayout = removeTab(sourceLayout, tab);
-		if (!newSourceLayout) {
+		if (!sourceLayout || !destLayout || sourceLayout.order.indexOf(tab) < 0) {
 			return layouts;
 		}
 
-		const { order } = destLayout;
-		const newDestLayout = {
+		layouts = layouts.set(source, paneRemoveTab(sourceLayout, tab));
+		layouts = layouts.set(dest, {
 			...destLayout,
-			order: insertElementAt(order, tab, pos),
+			order: insertElementAt(destLayout.order, tab, pos),
 			active: tab,
-		};
-
-		layouts = layouts.set(source, newSourceLayout);
-		layouts = layouts.set(dest, newDestLayout);
+		});
 
 		return checkUnsplit(layouts, source);
 	},
 
 	moveTabSplit(layouts: LayoutMap, { tab, source, dest, dir }: LayoutActionMoveTabSplit): LayoutMap {
 		const destLayout = getPaneLayout(layouts, dest);
-		if (source === dest && destLayout.order.length === 1) {
+		if (!destLayout || (source === dest && destLayout.order.length === 1)) {
 			return layouts;
 		}
 
 		const split = dirToSplit(dir);
 
 		let index = 0;
-		let parentLayout: [number, SplitLayout] | undefined;
+		let parent: [number, SplitLayout] | undefined;
 
 		if (destLayout.parent) {
-			const destParentLayout = getSplitLayout(layouts, destLayout.parent);
-
-			if (destParentLayout.split === split) {
-				index = destParentLayout.children.indexOf(dest);
+			const destParent = getParentLayout(layouts, destLayout);
+			if (destParent[1].split === split) {
+				index = destParent[1].children.indexOf(dest);
 				if (index < 0) {
 					return corrupt();
 				}
 
-				parentLayout = [destLayout.parent, destParentLayout];
+				parent = destParent;
 			}
 		}
 
-		if (!parentLayout) {
+		if (!parent) {
 			const movedID = unusedID(layouts);
 			layouts = layouts.set(movedID, { ...destLayout, parent: dest });
 			if (source === dest) {
 				source = movedID;
 			}
 
-			parentLayout = [
+			parent = [
 				dest,
 				{
 					parent: destLayout.parent,
@@ -217,7 +213,7 @@ const HANDLERS: LayoutActionHandlerMap = {
 					children: [movedID],
 				},
 			];
-			layouts = layouts.set(parentLayout[0], parentLayout[1]);
+			layouts = layouts.set(parent[0], parent[1]);
 		}
 
 		if (dir === 'right' || dir === 'bottom') {
@@ -227,13 +223,13 @@ const HANDLERS: LayoutActionHandlerMap = {
 		const newID = unusedID(layouts);
 		layouts = layouts.set(newID, {
 			split: 'none',
-			parent: parentLayout[0],
+			parent: parent[0],
 			order: [],
 			active: null,
 		});
-		layouts = layouts.set(parentLayout[0], {
-			...parentLayout[1],
-			children: insertElementAt(parentLayout[1].children, newID, index),
+		layouts = layouts.set(parent[0], {
+			...parent[1],
+			children: insertElementAt(parent[1].children, newID, index),
 		});
 
 		return HANDLERS.moveTab(layouts, { type: 'moveTab', tab, source, dest: newID, pos: 0 });
