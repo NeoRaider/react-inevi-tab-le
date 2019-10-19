@@ -8,7 +8,7 @@ export interface TabDropAreaProps {
 	ignore?: string;
 	className: string;
 
-	onDrop: (tab: string) => void;
+	onDrop: (tab: string, source: number) => void;
 }
 
 export function TabDropArea({ className, realm, ignore, onDrop }: TabDropAreaProps): JSX.Element {
@@ -16,7 +16,7 @@ export function TabDropArea({ className, realm, ignore, onDrop }: TabDropAreaPro
 		accept: TabDragType,
 		canDrop: (tab: TabDragDesc) => tab.realm === realm && tab.id !== ignore,
 		drop: (tab: TabDragDesc) => {
-			onDrop(tab.id);
+			onDrop(tab.id, tab.source);
 		},
 		collect: (monitor) => ({
 			active: monitor.canDrop(),

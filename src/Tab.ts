@@ -12,6 +12,7 @@ export interface Tab {
 export interface TabDragDesc {
 	type: symbol;
 	id: string;
+	source: number;
 	realm: symbol;
 }
 

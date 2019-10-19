@@ -6,6 +6,7 @@ import { TabDropArea } from './TabDropArea';
 
 export interface TabHeaderProps {
 	id: string;
+	pane: number;
 	tab: TabDesc;
 	isActive: boolean;
 
@@ -14,12 +15,13 @@ export interface TabHeaderProps {
 	onSelect: () => void;
 	onClose: () => void;
 
-	onDropLeft: (tab: string) => void;
-	onDropRight: (tab: string) => void;
+	onDropLeft: (tab: string, source: number) => void;
+	onDropRight: (tab: string, source: number) => void;
 }
 
 export function TabHeader({
 	id,
+	pane,
 	tab,
 	isActive,
 	realm,
@@ -28,7 +30,7 @@ export function TabHeader({
 	onClose,
 	onSelect,
 }: TabHeaderProps): JSX.Element {
-	const item: TabDragDesc = { type: TabDragType, id, realm };
+	const item: TabDragDesc = { type: TabDragType, id, source: pane, realm };
 	const [{ isDragging }, drag] = useDrag({
 		item,
 		collect: (monitor) => ({

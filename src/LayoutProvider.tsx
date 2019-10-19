@@ -42,10 +42,10 @@ export interface TabViewProps {
 	tabs: ReadonlyMap<string, Tab>;
 	portals: ReadonlyMap<string, PortalNode>;
 
-	onSelect(tab: string): void;
-	onClose(tab: string): void;
-	onMove(tab: string, dest: number, pos: number): void;
-	onMoveSplit(tab: string, dest: number, dir: Direction): void;
+	onSelect(tab: string, pane: number): void;
+	onClose(tab: string, pane: number): void;
+	onMove(tab: string, source: number, dest: number, pos: number): void;
+	onMoveSplit(tab: string, source: number, dest: number, dir: Direction): void;
 }
 
 export interface LayoutProviderProps {
@@ -90,17 +90,17 @@ export function LayoutProvider({ layoutManager, tabs, view }: LayoutProviderProp
 				realm={realm.current}
 				tabs={tabs}
 				portals={portals}
-				onSelect={(tab): void => {
-					layoutManager.selectTab(tab);
+				onSelect={(tab, pane): void => {
+					layoutManager.selectTab(tab, pane);
 				}}
-				onClose={(tab): void => {
-					layoutManager.closeTab(tab);
+				onClose={(tab, pane): void => {
+					layoutManager.closeTab(tab, pane);
 				}}
-				onMove={(tab: string, dest: number, pos: number): void => {
-					layoutManager.moveTab(tab, dest, pos);
+				onMove={(tab: string, source: number, dest: number, pos: number): void => {
+					layoutManager.moveTab(tab, source, dest, pos);
 				}}
-				onMoveSplit={(tab: string, dest: number, dir: Direction): void => {
-					layoutManager.moveTabSplit(tab, dest, dir);
+				onMoveSplit={(tab: string, source: number, dest: number, dir: Direction): void => {
+					layoutManager.moveTabSplit(tab, source, dest, dir);
 				}}
 			/>
 			{inPortals}

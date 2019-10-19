@@ -18,8 +18,8 @@ function TabSplitArea({ realm, id, dir, ignore, onMoveSplit }: TabSplitAreaProps
 			<TabDropArea
 				realm={realm}
 				ignore={ignore}
-				onDrop={(tab): void => {
-					onMoveSplit(tab, id, dir);
+				onDrop={(tab, source): void => {
+					onMoveSplit(tab, source, id, dir);
 				}}
 				className={dir}
 			/>
@@ -49,9 +49,9 @@ export function TabLayout(props: TabViewProps): JSX.Element {
 				<TabDropArea
 					realm={realm}
 					ignore={ignore}
-					onDrop={(tab): void => {
+					onDrop={(tab, source): void => {
 						if (!order.includes(tab)) {
-							onMove(tab, id, order.length);
+							onMove(tab, source, id, order.length);
 						}
 					}}
 					className='center'

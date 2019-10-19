@@ -27,12 +27,13 @@ export function InternalTabPane({
 		<div className='tabPane'>
 			<TabBar
 				realm={realm}
+				pane={id}
 				tabs={tabs}
 				order={order}
 				active={active}
 				onSelect={onSelect}
 				onClose={onClose}
-				onDrop={(tab, pos): void => onMove(tab, id, pos)}
+				onDrop={onMove}
 			/>
 			<div className='tabContentArea'>
 				{children}
