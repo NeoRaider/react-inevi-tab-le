@@ -33,12 +33,11 @@ export function fromNested(layout: NestedLayout): LayoutMap {
 					split,
 					children: flatChildren,
 					parent,
-					id,
 				});
 				break;
 
 			case 'none':
-				layouts = layouts.set(id, { ...layout, parent, id });
+				layouts = layouts.set(id, { ...layout, parent });
 				break;
 
 			default:
