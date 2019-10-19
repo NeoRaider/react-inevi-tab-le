@@ -45,7 +45,7 @@ export interface PaneLayout {
 }
 
 export type Layout = PaneLayout | SplitLayout;
-export type LayoutMap = ReadonlyMap<number, Layout>;
+export type LayoutMap = Map<number, Layout>;
 
 export type LayoutUpdateListener = (layouts: LayoutMap) => void;
 
@@ -118,11 +118,7 @@ function removeTab(layout: PaneLayout, tab: string): PaneLayout | null {
 	};
 }
 
-interface LayoutManagerState {
-	readonly layouts: Map<number, Layout>;
-}
-
-function unusedID(layouts: Map<number, Layout>): number {
+function unusedID(layouts: LayoutMap): number {
 	for (let i = 1; ; i++) {
 		if (!layouts.has(i)) {
 			return i;
@@ -130,15 +126,15 @@ function unusedID(layouts: Map<number, Layout>): number {
 	}
 }
 
-function setLayout(layouts: Map<number, Layout>, layout: Layout): Map<number, Layout> {
+function setLayout(layouts: LayoutMap, layout: Layout): LayoutMap {
 	return layouts.set(layout.id, layout);
 }
 
-function getLayout(layouts: Map<number, Layout>, id: number): Layout {
+function getLayout(layouts: LayoutMap, id: number): Layout {
 	return layouts.get(id) || corrupt();
 }
 
-function getSplitLayout(layouts: Map<number, Layout>, id: number): SplitLayout {
+function getSplitLayout(layouts: LayoutMap, id: number): SplitLayout {
 	const layout = getLayout(layouts, id);
 	if (layout.split === 'none') {
 		return corrupt();
@@ -146,7 +142,7 @@ function getSplitLayout(layouts: Map<number, Layout>, id: number): SplitLayout {
 	return layout;
 }
 
-function getPaneLayout(layouts: Map<number, Layout>, id: number): PaneLayout {
+function getPaneLayout(layouts: LayoutMap, id: number): PaneLayout {
 	const layout = getLayout(layouts, id);
 	if (layout.split !== 'none') {
 		return corrupt();
@@ -154,12 +150,10 @@ function getPaneLayout(layouts: Map<number, Layout>, id: number): PaneLayout {
 	return layout;
 }
 
-function checkUnsplit(state: LayoutManagerState, id: number): LayoutManagerState {
-	let { layouts } = state;
-
+function checkUnsplit(layouts: LayoutMap, id: number): LayoutMap {
 	const layout = getPaneLayout(layouts, id);
 	if (layout.order.length > 0 || !layout.parent) {
-		return state;
+		return layouts;
 	}
 
 	const parent = getSplitLayout(layouts, layout.parent);
@@ -183,60 +177,50 @@ function checkUnsplit(state: LayoutManagerState, id: number): LayoutManagerState
 		}
 	}
 
-	layouts = layouts.delete(id);
-
-	return { ...state, layouts };
+	return layouts.delete(id);
 }
 
 type LayoutActionType = LayoutAction['type'];
 type LayoutActionOf<K extends LayoutActionType> = Extract<LayoutAction, { type: K }>;
-type LayoutActionHandler<K extends LayoutActionType> = (
-	state: LayoutManagerState,
-	action: LayoutActionOf<K>,
-) => LayoutManagerState;
+type LayoutActionHandler<K extends LayoutActionType> = (layouts: LayoutMap, action: LayoutActionOf<K>) => LayoutMap;
 type LayoutActionHandlerMap = {
 	[K in LayoutActionType]: LayoutActionHandler<K>;
 };
 
 const HANDLERS: LayoutActionHandlerMap = {
-	selectTab(state: LayoutManagerState, { tab, pane }: LayoutActionSelectTab): LayoutManagerState {
-		let { layouts } = state;
+	selectTab(layouts: LayoutMap, { tab, pane }: LayoutActionSelectTab): LayoutMap {
 		const layout = getPaneLayout(layouts, pane);
 
 		if (layout.order.indexOf(tab) < 0) {
-			return state;
+			return layouts;
 		}
 
-		layouts = setLayout(layouts, {
+		return setLayout(layouts, {
 			...layout,
 			active: tab,
 		});
-
-		return { ...state, layouts };
 	},
 
-	closeTab(state: LayoutManagerState, { tab, pane }: LayoutActionCloseTab): LayoutManagerState {
-		let { layouts } = state;
+	closeTab(layouts: LayoutMap, { tab, pane }: LayoutActionCloseTab): LayoutMap {
 		const layout = getPaneLayout(layouts, pane);
 
 		const newLayout = removeTab(layout, tab);
 		if (!newLayout) {
-			return state;
+			return layouts;
 		}
 
 		layouts = setLayout(layouts, newLayout);
-		return checkUnsplit({ ...state, layouts }, pane);
+		return checkUnsplit(layouts, pane);
 	},
 
-	moveTab(state: LayoutManagerState, { tab, source, dest, pos }: LayoutActionMoveTab): LayoutManagerState {
-		let { layouts } = state;
+	moveTab(layouts: LayoutMap, { tab, source, dest, pos }: LayoutActionMoveTab): LayoutMap {
 		const sourceLayout = getPaneLayout(layouts, source);
 
 		if (source === dest) {
 			const { order } = sourceLayout;
 			const index = order.indexOf(tab);
 			if (index < 0) {
-				return state;
+				return layouts;
 			}
 
 			layouts = setLayout(layouts, {
@@ -244,14 +228,14 @@ const HANDLERS: LayoutActionHandlerMap = {
 				order: moveElementAt(order, index, pos),
 			});
 
-			return { ...state, layouts };
+			return layouts;
 		}
 
 		const destLayout = getPaneLayout(layouts, dest);
 
 		const newSourceLayout = removeTab(sourceLayout, tab);
 		if (!newSourceLayout) {
-			return state;
+			return layouts;
 		}
 
 		const { order } = destLayout;
@@ -264,17 +248,13 @@ const HANDLERS: LayoutActionHandlerMap = {
 		layouts = setLayout(layouts, newSourceLayout);
 		layouts = setLayout(layouts, newDestLayout);
 
-		return checkUnsplit({ ...state, layouts }, source);
+		return checkUnsplit(layouts, source);
 	},
 
-	moveTabSplit(
-		state: LayoutManagerState,
-		{ tab, source, dest, dir }: LayoutActionMoveTabSplit,
-	): LayoutManagerState {
-		let { layouts } = state;
+	moveTabSplit(layouts: LayoutMap, { tab, source, dest, dir }: LayoutActionMoveTabSplit): LayoutMap {
 		const destLayout = getPaneLayout(layouts, dest);
 		if (source === dest && destLayout.order.length === 1) {
-			return state;
+			return layouts;
 		}
 
 		const split = dirToSplit(dir);
@@ -328,19 +308,16 @@ const HANDLERS: LayoutActionHandlerMap = {
 			children: insertElementAt(parentLayout.children, newLayout.id, index),
 		});
 
-		return HANDLERS.moveTab(
-			{ ...state, layouts },
-			{ type: 'moveTab', tab, source, dest: newLayout.id, pos: 0 },
-		);
+		return HANDLERS.moveTab(layouts, { type: 'moveTab', tab, source, dest: newLayout.id, pos: 0 });
 	},
 };
 
-function layoutAction(state: LayoutManagerState, action: LayoutAction): LayoutManagerState {
+function layoutAction(layouts: LayoutMap, action: LayoutAction): LayoutMap {
 	const handler = HANDLERS[action.type] as LayoutActionHandler<typeof action.type>;
-	return handler(state, action);
+	return handler(layouts, action);
 }
 
-function fromNested(layout: NestedLayout): LayoutManagerState {
+function fromNested(layout: NestedLayout): LayoutMap {
 	let layouts = Map<number, Layout>();
 	let nextID = 1;
 
@@ -375,11 +352,11 @@ function fromNested(layout: NestedLayout): LayoutManagerState {
 
 	flatten(layout, 0);
 
-	return { layouts };
+	return layouts;
 }
 
 export class DefaultLayoutManager implements LayoutManager {
-	private state: LayoutManagerState;
+	private state: LayoutMap;
 	private listeners: ReadonlyArray<LayoutUpdateListener> = [];
 
 	public constructor(layout: NestedLayout) {
@@ -419,7 +396,7 @@ export class DefaultLayoutManager implements LayoutManager {
 
 	private updateListeners(listeners: ReadonlyArray<LayoutUpdateListener>): void {
 		for (const listener of listeners) {
-			listener(this.state.layouts);
+			listener(this.state);
 		}
 	}
 }
