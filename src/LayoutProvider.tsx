@@ -1,26 +1,10 @@
 import * as React from 'react';
-const { useEffect, useState, useRef } = React;
+const { useReducer, useRef } = React;
 
 import { PortalNode, createPortalNode, InPortal } from 'react-reverse-portal';
 
-import { LayoutManager, Direction, LayoutMap } from './LayoutManager';
+import { Direction, LayoutMap, layoutReducer, selectTab, closeTab, moveTab, moveTabSplit } from './LayoutManager';
 import { Tab } from './Tab';
-
-function useLayout(layoutManager: LayoutManager): LayoutMap | null {
-	const [layoutState, setLayoutState] = useState<LayoutMap | null>(null);
-
-	const handleUpdate = (layouts: LayoutMap): void => {
-		setLayoutState(layouts);
-	};
-
-	useEffect(() => {
-		layoutManager.addUpdateListener(handleUpdate);
-
-		return (): void => layoutManager.removeUpdateListener(handleUpdate);
-	}, [layoutManager]);
-
-	return layoutState;
-}
 
 function useRefMap<K, V1, V2>(inMap: ReadonlyMap<K, V1>, f: (v: V1, k: K) => V2): Map<K, V2> {
 	const map = useRef(new Map<K, V2>());
@@ -49,25 +33,22 @@ export interface TabViewProps {
 }
 
 export interface LayoutProviderProps {
-	layoutManager: LayoutManager;
+	initialLayout: LayoutMap;
 	tabs: ReadonlyMap<string, Tab>;
 
 	view: React.ComponentType<TabViewProps>;
 }
 
-export function LayoutProvider({ layoutManager, tabs, view }: LayoutProviderProps): JSX.Element | null {
+export function LayoutProvider({ initialLayout, tabs, view }: LayoutProviderProps): JSX.Element | null {
 	const realm = useRef(Symbol('Realm'));
-	const layouts = useLayout(layoutManager);
+
+	const [layouts, dispatch] = useReducer(layoutReducer, initialLayout);
 
 	const tabPortals = useRefMap(tabs, (tab): [Tab, PortalNode] => {
 		const portal = createPortalNode();
 		portal.className = 'tabContent';
 		return [tab, portal];
 	});
-
-	if (!layouts) {
-		return null;
-	}
 
 	const View = view;
 
@@ -91,16 +72,16 @@ export function LayoutProvider({ layoutManager, tabs, view }: LayoutProviderProp
 				tabs={tabs}
 				portals={portals}
 				onSelect={(tab, pane): void => {
-					layoutManager.selectTab(tab, pane);
+					dispatch(selectTab(tab, pane));
 				}}
 				onClose={(tab, pane): void => {
-					layoutManager.closeTab(tab, pane);
+					dispatch(closeTab(tab, pane));
 				}}
 				onMove={(tab: string, source: number, dest: number, pos: number): void => {
-					layoutManager.moveTab(tab, source, dest, pos);
+					dispatch(moveTab(tab, source, dest, pos));
 				}}
 				onMoveSplit={(tab: string, source: number, dest: number, dir: Direction): void => {
-					layoutManager.moveTabSplit(tab, source, dest, dir);
+					dispatch(moveTabSplit(tab, source, dest, dir));
 				}}
 			/>
 			{inPortals}

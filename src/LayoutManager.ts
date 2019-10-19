@@ -1,6 +1,6 @@
 import { Map } from 'immutable';
 
-import { appendElement, insertElementAt, moveElementAt, removeElement, removeElementAt } from './util';
+import { insertElementAt, moveElementAt, removeElement, removeElementAt } from './util';
 
 export type Split = 'horizontal' | 'vertical';
 export type Direction = 'left' | 'right' | 'top' | 'bottom';
@@ -47,8 +47,6 @@ export interface PaneLayout {
 export type Layout = PaneLayout | SplitLayout;
 export type LayoutMap = Map<number, Layout>;
 
-export type LayoutUpdateListener = (layouts: LayoutMap) => void;
-
 interface LayoutActionSelectTab {
 	type: 'selectTab';
 	tab: string;
@@ -79,14 +77,20 @@ interface LayoutActionMoveTabSplit {
 
 type LayoutAction = LayoutActionSelectTab | LayoutActionCloseTab | LayoutActionMoveTab | LayoutActionMoveTabSplit;
 
-export interface LayoutManager {
-	addUpdateListener(listener: LayoutUpdateListener): void;
-	removeUpdateListener(listener: LayoutUpdateListener): void;
+export function selectTab(tab: string, pane: number): LayoutAction {
+	return { type: 'selectTab', tab, pane };
+}
 
-	selectTab(tab: string, pane: number): boolean;
-	closeTab(tab: string, pane: number): boolean;
-	moveTab(tab: string, source: number, dest: number, pos: number): boolean;
-	moveTabSplit(tab: string, source: number, dest: number, dir: Direction): boolean;
+export function closeTab(tab: string, pane: number): LayoutAction {
+	return { type: 'closeTab', tab, pane };
+}
+
+export function moveTab(tab: string, source: number, dest: number, pos: number): LayoutAction {
+	return { type: 'moveTab', tab, source, dest, pos };
+}
+
+export function moveTabSplit(tab: string, source: number, dest: number, dir: Direction): LayoutAction {
+	return { type: 'moveTabSplit', tab, source, dest, dir };
 }
 
 function corrupt(): never {
@@ -312,12 +316,12 @@ const HANDLERS: LayoutActionHandlerMap = {
 	},
 };
 
-function layoutAction(layouts: LayoutMap, action: LayoutAction): LayoutMap {
+export function layoutReducer(layouts: LayoutMap, action: LayoutAction): LayoutMap {
 	const handler = HANDLERS[action.type] as LayoutActionHandler<typeof action.type>;
 	return handler(layouts, action);
 }
 
-function fromNested(layout: NestedLayout): LayoutMap {
+export function fromNested(layout: NestedLayout): LayoutMap {
 	let layouts = Map<number, Layout>();
 	let nextID = 1;
 
@@ -353,50 +357,4 @@ function fromNested(layout: NestedLayout): LayoutMap {
 	flatten(layout, 0);
 
 	return layouts;
-}
-
-export class DefaultLayoutManager implements LayoutManager {
-	private state: LayoutMap;
-	private listeners: ReadonlyArray<LayoutUpdateListener> = [];
-
-	public constructor(layout: NestedLayout) {
-		this.state = fromNested(layout);
-	}
-
-	public addUpdateListener(listener: LayoutUpdateListener): void {
-		this.listeners = appendElement(this.listeners, listener);
-		this.updateListeners([listener]);
-	}
-
-	public removeUpdateListener(listener: LayoutUpdateListener): void {
-		this.listeners = removeElement(this.listeners, listener);
-	}
-
-	private dispatch(action: LayoutAction): boolean {
-		this.state = layoutAction(this.state, action);
-		this.updateListeners(this.listeners);
-		return true;
-	}
-
-	public selectTab(tab: string, pane: number): boolean {
-		return this.dispatch({ type: 'selectTab', tab, pane });
-	}
-
-	public closeTab(tab: string, pane: number): boolean {
-		return this.dispatch({ type: 'closeTab', tab, pane });
-	}
-
-	public moveTab(tab: string, source: number, dest: number, pos: number): boolean {
-		return this.dispatch({ type: 'moveTab', tab, source, dest, pos });
-	}
-
-	public moveTabSplit(tab: string, source: number, dest: number, dir: Direction): boolean {
-		return this.dispatch({ type: 'moveTabSplit', tab, source, dest, dir });
-	}
-
-	private updateListeners(listeners: ReadonlyArray<LayoutUpdateListener>): void {
-		for (const listener of listeners) {
-			listener(this.state);
-		}
-	}
 }
