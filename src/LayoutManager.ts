@@ -157,7 +157,7 @@ function checkUnsplit(state: LayoutManagerState, id: number): LayoutManagerState
 	let { layouts } = state;
 
 	const layout = getPaneLayout(layouts, id);
-	if (layout.order.length > 0 || layout.parent === null) {
+	if (layout.order.length > 0 || !layout.parent) {
 		return state;
 	}
 
@@ -281,7 +281,7 @@ const HANDLERS: LayoutActionHandlerMap = {
 		let index = 0;
 		let parentLayout: SplitLayout | undefined;
 
-		if (destLayout.parent !== null) {
+		if (destLayout.parent) {
 			const destParentLayout = getSplitLayout(layouts, destLayout.parent);
 
 			if (destParentLayout.split === split) {
