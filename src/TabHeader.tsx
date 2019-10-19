@@ -3,34 +3,22 @@ import { useDrag } from 'react-dnd';
 
 import { TabDesc, TabDragDesc, TabDragType } from './Tab';
 import { TabDropArea } from './TabDropArea';
+import { LayoutAction, closeTab, selectTab, moveTab } from './layout/actions';
 
 export interface TabHeaderProps {
-	id: string;
+	tab: string;
 	pane: number;
-	tab: TabDesc;
+	index: number;
+	desc: TabDesc;
 	isActive: boolean;
 
 	realm: symbol;
 
-	onSelect: () => void;
-	onClose: () => void;
-
-	onDropLeft: (tab: string, source: number) => void;
-	onDropRight: (tab: string, source: number) => void;
+	dispatch(action: LayoutAction): void;
 }
 
-export function TabHeader({
-	id,
-	pane,
-	tab,
-	isActive,
-	realm,
-	onDropLeft,
-	onDropRight,
-	onClose,
-	onSelect,
-}: TabHeaderProps): JSX.Element {
-	const item: TabDragDesc = { type: TabDragType, id, source: pane, realm };
+export function TabHeader({ tab, pane, index, desc, isActive, realm, dispatch }: TabHeaderProps): JSX.Element {
+	const item: TabDragDesc = { type: TabDragType, id: tab, source: pane, realm };
 	const [{ isDragging }, drag] = useDrag({
 		item,
 		collect: (monitor) => ({
@@ -41,12 +29,12 @@ export function TabHeader({
 	const handleMouseDown = (e: React.MouseEvent): void => {
 		switch (e.button) {
 			case 0:
-				onSelect();
+				dispatch(selectTab(tab, pane));
 				break;
 
 			case 1:
-				if (tab.closable !== false) {
-					onClose();
+				if (desc.closable !== false) {
+					dispatch(closeTab(tab, pane));
 				}
 				break;
 		}
@@ -61,24 +49,32 @@ export function TabHeader({
 		e.preventDefault();
 		e.stopPropagation();
 
-		onClose();
+		dispatch(closeTab(tab, pane));
 	};
 
 	const className =
 		'tabHeader' +
 		(isActive ? ' active' : '') +
 		(isDragging ? ' dragging' : '') +
-		(tab.closable !== false ? ' closable' : '');
+		(desc.closable !== false ? ' closable' : '');
 
 	return (
 		<div ref={drag} className={className} onMouseDown={handleMouseDown}>
 			<div className='dropAreaContainer'>
-				<TabDropArea realm={realm} onDrop={onDropLeft} className='left' />
-				<TabDropArea realm={realm} onDrop={onDropRight} className='right' />
+				<TabDropArea
+					realm={realm}
+					onDrop={(tab, source): void => dispatch(moveTab(tab, source, pane, index))}
+					className='left'
+				/>
+				<TabDropArea
+					realm={realm}
+					onDrop={(tab, source): void => dispatch(moveTab(tab, source, pane, index + 1))}
+					className='right'
+				/>
 			</div>
 			<div className='tabHeaderContent'>
-				<span className='tabTitle'>{tab.title}</span>
-				{tab.closable !== false && (
+				<span className='tabTitle'>{desc.title}</span>
+				{desc.closable !== false && (
 					<span
 						className='tabCloser'
 						onMouseDown={handleMouseDownClose}

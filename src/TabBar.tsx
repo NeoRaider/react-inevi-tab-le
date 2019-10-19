@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { TabDropArea } from './TabDropArea';
 import { TabHeader } from './TabHeader';
-import { selectTab, closeTab, moveTab } from './layout/actions';
+import { moveTab } from './layout/actions';
 import { InternalTabPaneProps } from './TabPane';
 
 export function TabBar({ realm, tabs, id, layout, dispatch }: InternalTabPaneProps): JSX.Element {
@@ -18,14 +18,12 @@ export function TabBar({ realm, tabs, id, layout, dispatch }: InternalTabPanePro
 			<TabHeader
 				realm={realm}
 				pane={id}
+				index={i}
 				key={tabID}
-				id={tabID}
-				tab={tab.desc}
+				tab={tabID}
+				desc={tab.desc}
 				isActive={tabID === active}
-				onSelect={(): void => dispatch(selectTab(tabID, id))}
-				onClose={(): void => dispatch(closeTab(tabID, id))}
-				onDropLeft={(tab, source): void => dispatch(moveTab(tab, source, id, i))}
-				onDropRight={(tab, source): void => dispatch(moveTab(tab, source, id, i + 1))}
+				dispatch={dispatch}
 			/>
 		);
 	});
