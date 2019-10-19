@@ -47,19 +47,19 @@ export interface PaneLayout {
 export type Layout = PaneLayout | SplitLayout;
 export type LayoutMap = Map<number, Layout>;
 
-interface LayoutActionSelectTab {
+export interface LayoutActionSelectTab {
 	type: 'selectTab';
 	tab: string;
 	pane: number;
 }
 
-interface LayoutActionCloseTab {
+export interface LayoutActionCloseTab {
 	type: 'closeTab';
 	tab: string;
 	pane: number;
 }
 
-interface LayoutActionMoveTab {
+export interface LayoutActionMoveTab {
 	type: 'moveTab';
 	tab: string;
 	source: number;
@@ -67,7 +67,7 @@ interface LayoutActionMoveTab {
 	pos: number;
 }
 
-interface LayoutActionMoveTabSplit {
+export interface LayoutActionMoveTabSplit {
 	type: 'moveTabSplit';
 	tab: string;
 	source: number;
@@ -75,7 +75,11 @@ interface LayoutActionMoveTabSplit {
 	dir: Direction;
 }
 
-type LayoutAction = LayoutActionSelectTab | LayoutActionCloseTab | LayoutActionMoveTab | LayoutActionMoveTabSplit;
+export type LayoutAction =
+	| LayoutActionSelectTab
+	| LayoutActionCloseTab
+	| LayoutActionMoveTab
+	| LayoutActionMoveTabSplit;
 
 export function selectTab(tab: string, pane: number): LayoutAction {
 	return { type: 'selectTab', tab, pane };

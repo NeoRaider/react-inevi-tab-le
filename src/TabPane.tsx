@@ -1,40 +1,31 @@
 import * as React from 'react';
-import { OutPortal } from 'react-reverse-portal';
+import { OutPortal, PortalNode } from 'react-reverse-portal';
 
 import { TabBar } from './TabBar';
 import { TabViewProps } from './LayoutProvider';
-import { PaneLayout } from './LayoutManager';
+import { PaneLayout, LayoutAction } from './LayoutManager';
+import { Tab } from './Tab';
 
-export interface InternalTabPaneProps extends TabViewProps {
+export interface InternalTabPaneProps {
+	realm: symbol;
+	id: number;
+	tabs: ReadonlyMap<string, Tab>;
+	portals: ReadonlyMap<string, PortalNode>;
+
+	dispatch(action: LayoutAction): void;
 	layout: PaneLayout;
+
 	children?: React.ReactNode;
 }
 
-export function InternalTabPane({
-	children,
-	realm,
-	layout,
-	tabs,
-	portals,
-	onSelect,
-	onClose,
-	onMove,
-}: InternalTabPaneProps): JSX.Element {
-	const { id, order, active } = layout;
+export function InternalTabPane(props: InternalTabPaneProps): JSX.Element {
+	const { children, layout, portals } = props;
+	const { active } = layout;
 	const activePortal = active ? portals.get(active) : undefined;
 
 	return (
 		<div className='tabPane'>
-			<TabBar
-				realm={realm}
-				pane={id}
-				tabs={tabs}
-				order={order}
-				active={active}
-				onSelect={onSelect}
-				onClose={onClose}
-				onDrop={onMove}
-			/>
+			<TabBar {...props} />
 			<div className='tabContentArea'>
 				{children}
 				{active && activePortal && <OutPortal key={active} node={activePortal} />}
@@ -44,7 +35,7 @@ export function InternalTabPane({
 }
 
 export function TabPane(props: TabViewProps): JSX.Element {
-	const { id, layouts } = props;
+	const { realm, id, tabs, portals, dispatch, layouts } = props;
 
 	// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 	const layout = layouts.get(id)!;
@@ -53,5 +44,5 @@ export function TabPane(props: TabViewProps): JSX.Element {
 		throw new Error('TabPane does not support split layouts');
 	}
 
-	return <InternalTabPane {...props} layout={layout} />;
+	return <InternalTabPane {...{ realm, id, tabs, portals, dispatch, layout }} />;
 }

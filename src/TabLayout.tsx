@@ -5,21 +5,21 @@ import { SplitPane } from 'react-multi-split-pane';
 import { InternalTabPane } from './TabPane';
 import { TabViewProps } from './LayoutProvider';
 import { TabDropArea } from './TabDropArea';
-import { Direction } from './LayoutManager';
+import { Direction, moveTabSplit, moveTab } from './LayoutManager';
 
 interface TabSplitAreaProps extends TabViewProps {
 	dir: Direction;
 	ignore?: string;
 }
 
-function TabSplitArea({ realm, id, dir, ignore, onMoveSplit }: TabSplitAreaProps): JSX.Element {
+function TabSplitArea({ realm, id, dir, ignore, dispatch }: TabSplitAreaProps): JSX.Element {
 	return (
 		<>
 			<TabDropArea
 				realm={realm}
 				ignore={ignore}
 				onDrop={(tab, source): void => {
-					onMoveSplit(tab, source, id, dir);
+					dispatch(moveTabSplit(tab, source, id, dir));
 				}}
 				className={dir}
 			/>
@@ -35,13 +35,13 @@ export function TabLayout(props: TabViewProps): JSX.Element {
 	const layout = layouts.get(id)!;
 
 	if (layout.split === 'none') {
-		const { realm, onMove } = props;
+		const { realm, dispatch, tabs, portals } = props;
 		const { order } = layout;
 
 		const ignore = order.length === 1 ? order[0] : undefined;
 
 		return (
-			<InternalTabPane {...props} layout={layout}>
+			<InternalTabPane {...{ realm, id, tabs, portals, dispatch, layout }}>
 				<TabSplitArea {...props} dir='top' ignore={ignore} />
 				<TabSplitArea {...props} dir='bottom' ignore={ignore} />
 				<TabSplitArea {...props} dir='left' ignore={ignore} />
@@ -51,7 +51,7 @@ export function TabLayout(props: TabViewProps): JSX.Element {
 					ignore={ignore}
 					onDrop={(tab, source): void => {
 						if (!order.includes(tab)) {
-							onMove(tab, source, id, order.length);
+							dispatch(moveTab(tab, source, id, order.length));
 						}
 					}}
 					className='center'

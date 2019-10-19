@@ -3,7 +3,7 @@ const { useReducer, useRef } = React;
 
 import { PortalNode, createPortalNode, InPortal } from 'react-reverse-portal';
 
-import { Direction, LayoutMap, layoutReducer, selectTab, closeTab, moveTab, moveTabSplit } from './LayoutManager';
+import { LayoutMap, layoutReducer, LayoutAction } from './LayoutManager';
 import { Tab } from './Tab';
 
 function useRefMap<K, V1, V2>(inMap: ReadonlyMap<K, V1>, f: (v: V1, k: K) => V2): Map<K, V2> {
@@ -26,10 +26,7 @@ export interface TabViewProps {
 	tabs: ReadonlyMap<string, Tab>;
 	portals: ReadonlyMap<string, PortalNode>;
 
-	onSelect(tab: string, pane: number): void;
-	onClose(tab: string, pane: number): void;
-	onMove(tab: string, source: number, dest: number, pos: number): void;
-	onMoveSplit(tab: string, source: number, dest: number, dir: Direction): void;
+	dispatch(action: LayoutAction): void;
 }
 
 export interface LayoutProviderProps {
@@ -40,7 +37,7 @@ export interface LayoutProviderProps {
 }
 
 export function LayoutProvider({ initialLayout, tabs, view }: LayoutProviderProps): JSX.Element | null {
-	const realm = useRef(Symbol('Realm'));
+	const realm = useRef(Symbol('Realm')).current;
 
 	const [layouts, dispatch] = useReducer(layoutReducer, initialLayout);
 
@@ -67,21 +64,12 @@ export function LayoutProvider({ initialLayout, tabs, view }: LayoutProviderProp
 		<>
 			<View
 				id={1}
-				layouts={layouts}
-				realm={realm.current}
-				tabs={tabs}
-				portals={portals}
-				onSelect={(tab, pane): void => {
-					dispatch(selectTab(tab, pane));
-				}}
-				onClose={(tab, pane): void => {
-					dispatch(closeTab(tab, pane));
-				}}
-				onMove={(tab: string, source: number, dest: number, pos: number): void => {
-					dispatch(moveTab(tab, source, dest, pos));
-				}}
-				onMoveSplit={(tab: string, source: number, dest: number, dir: Direction): void => {
-					dispatch(moveTabSplit(tab, source, dest, dir));
+				{...{
+					realm,
+					layouts,
+					dispatch,
+					tabs,
+					portals,
 				}}
 			/>
 			{inPortals}
