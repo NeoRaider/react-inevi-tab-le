@@ -118,15 +118,16 @@ function removeTab(layout: PaneLayout, tab: string): PaneLayout | null {
 	};
 }
 
-type IdGen = () => [number, IdGen];
-
-function idGen(n: number): IdGen {
-	return (): [number, IdGen] => [n, idGen(n + 1)];
-}
-
 interface LayoutManagerState {
 	readonly layouts: Map<number, Layout>;
-	readonly newID: IdGen;
+}
+
+function unusedID(layouts: Map<number, Layout>): number {
+	for (let i = 1; ; i++) {
+		if (!layouts.has(i)) {
+			return i;
+		}
+	}
 }
 
 function setLayout(layouts: Map<number, Layout>, layout: Layout): Map<number, Layout> {
@@ -270,7 +271,7 @@ const HANDLERS: LayoutActionHandlerMap = {
 		state: LayoutManagerState,
 		{ tab, source, dest, dir }: LayoutActionMoveTabSplit,
 	): LayoutManagerState {
-		let { layouts, newID } = state;
+		let { layouts } = state;
 		const destLayout = getPaneLayout(layouts, dest);
 		if (source === dest && destLayout.order.length === 1) {
 			return state;
@@ -295,19 +296,17 @@ const HANDLERS: LayoutActionHandlerMap = {
 		}
 
 		if (!parentLayout) {
-			let movedID;
-			[movedID, newID] = newID();
-			const movedLayout = { ...destLayout, parent: dest, id: movedID };
+			const movedLayout = { ...destLayout, parent: dest, id: unusedID(layouts) };
 			layouts = setLayout(layouts, movedLayout);
 			if (source === dest) {
-				source = movedID;
+				source = movedLayout.id;
 			}
 
 			parentLayout = {
 				id: destLayout.id,
 				parent: destLayout.parent,
 				split,
-				children: [movedID],
+				children: [movedLayout.id],
 			};
 			layouts = setLayout(layouts, parentLayout);
 		}
@@ -316,13 +315,10 @@ const HANDLERS: LayoutActionHandlerMap = {
 			index++;
 		}
 
-		let newLayoutID;
-		// eslint-disable-next-line prefer-const
-		[newLayoutID, newID] = newID();
 		const newLayout: PaneLayout = {
 			split: 'none',
 			parent: parentLayout.id,
-			id: newLayoutID,
+			id: unusedID(layouts),
 			order: [],
 			active: null,
 		};
@@ -333,7 +329,7 @@ const HANDLERS: LayoutActionHandlerMap = {
 		});
 
 		return HANDLERS.moveTab(
-			{ ...state, layouts, newID },
+			{ ...state, layouts },
 			{ type: 'moveTab', tab, source, dest: newLayout.id, pos: 0 },
 		);
 	},
@@ -345,12 +341,11 @@ function layoutAction(state: LayoutManagerState, action: LayoutAction): LayoutMa
 }
 
 function fromNested(layout: NestedLayout): LayoutManagerState {
-	let newID = idGen(1);
 	let layouts = Map<number, Layout>();
+	let nextID = 1;
 
 	function flatten(layout: NestedLayout, parent: number): number {
-		let id: number;
-		[id, newID] = newID();
+		const id = nextID++;
 		switch (layout.split) {
 			case 'horizontal':
 			case 'vertical':
@@ -380,7 +375,7 @@ function fromNested(layout: NestedLayout): LayoutManagerState {
 
 	flatten(layout, 0);
 
-	return { layouts, newID };
+	return { layouts };
 }
 
 export class DefaultLayoutManager implements LayoutManager {
