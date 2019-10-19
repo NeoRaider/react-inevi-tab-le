@@ -7,6 +7,7 @@ import {
 	LayoutActionCloseTab,
 	LayoutActionMoveTab,
 	LayoutActionMoveTabSplit,
+	moveTab,
 } from './actions';
 
 function dirToSplit(dir: Direction): Split {
@@ -24,7 +25,52 @@ function corrupt(): never {
 	throw new Error('Data corruption');
 }
 
-function paneRemoveTab(layout: PaneLayout, tab: string): PaneLayout {
+function selectLayoutTab(layout: Layout, tab: string): Layout {
+	if (layout.split !== 'none') {
+		return layout;
+	}
+
+	if (layout.order.indexOf(tab) < 0) {
+		return layout;
+	}
+
+	return { ...layout, active: tab };
+}
+
+function insertLayoutTab(layout: Layout, tab: string, pos: number): Layout {
+	if (layout.split !== 'none') {
+		return layout;
+	}
+
+	return {
+		...layout,
+		order: insertElementAt(layout.order, tab, pos),
+		active: tab,
+	};
+}
+
+function moveLayoutTab(layout: Layout, tab: string, pos: number): Layout {
+	if (layout.split !== 'none') {
+		return layout;
+	}
+
+	const { order } = layout;
+	const index = order.indexOf(tab);
+	if (index < 0) {
+		return layout;
+	}
+
+	return {
+		...layout,
+		order: moveElementAt(order, index, pos),
+	};
+}
+
+function removeLayoutTab(layout: Layout, tab: string): Layout {
+	if (layout.split !== 'none') {
+		return layout;
+	}
+
 	let { active, order } = layout;
 
 	const index = order.indexOf(tab);
@@ -48,16 +94,14 @@ function paneRemoveTab(layout: PaneLayout, tab: string): PaneLayout {
 	};
 }
 
-function paneMoveTab(layout: PaneLayout, tab: string, pos: number): PaneLayout {
-	const { order } = layout;
-	const index = order.indexOf(tab);
-	if (index < 0) {
+function insertLayoutChild(layout: Layout, child: number, pos: number): Layout {
+	if (layout.split === 'none') {
 		return layout;
 	}
 
 	return {
 		...layout,
-		order: moveElementAt(order, index, pos),
+		children: insertElementAt(layout.children, child, pos),
 	};
 }
 
@@ -85,8 +129,20 @@ function getPaneLayout(layouts: LayoutMap, id: number): PaneLayout | null {
 	return layout;
 }
 
-function getParentLayout(layouts: LayoutMap, layout: Layout): [number, SplitLayout] {
-	return [layout.parent, getSplitLayout(layouts, layout.parent) || corrupt()];
+function moveLayout(layouts: LayoutMap, from: number, to: number, parent: number): LayoutMap {
+	const layout = layouts.get(from) || corrupt();
+
+	layouts = layouts.delete(from);
+	layouts = layouts.set(to, { ...layout, parent });
+
+	if (layout.split !== 'none') {
+		for (const child of layout.children) {
+			const childLayout = layouts.get(child) || corrupt();
+			layouts = layouts.set(child, { ...childLayout, parent: to });
+		}
+	}
+
+	return layouts;
 }
 
 function checkUnsplit(layouts: LayoutMap, pane: number): LayoutMap {
@@ -95,30 +151,17 @@ function checkUnsplit(layouts: LayoutMap, pane: number): LayoutMap {
 		return layouts;
 	}
 
-	const [parent, parentLayout] = getParentLayout(layouts, paneLayout);
-
 	layouts = layouts.delete(pane);
 
+	const parent = paneLayout.parent;
+	const parentLayout = getSplitLayout(layouts, parent) || corrupt();
 	const remaining = removeElement(parentLayout.children, pane);
 
-	if (remaining.length > 1) {
-		return layouts.set(parent, { ...parentLayout, children: remaining });
+	if (remaining.length == 1) {
+		return moveLayout(layouts, remaining[0], parent, parentLayout.parent);
 	}
 
-	const other = remaining[0];
-	const otherLayout = layouts.get(other) || corrupt();
-	layouts = layouts.delete(other);
-
-	layouts = layouts.set(parent, { ...otherLayout, parent: parentLayout.parent });
-
-	if (otherLayout.split !== 'none') {
-		for (const child of otherLayout.children) {
-			const childLayout = layouts.get(child) || corrupt();
-			layouts = layouts.set(child, { ...childLayout, parent });
-		}
-	}
-
-	return layouts;
+	return layouts.set(parent, { ...parentLayout, children: remaining });
 }
 
 type LayoutActionType = LayoutAction['type'];
@@ -130,32 +173,17 @@ type LayoutActionHandlerMap = {
 
 const HANDLERS: LayoutActionHandlerMap = {
 	selectTab(layouts: LayoutMap, { tab, pane }: LayoutActionSelectTab): LayoutMap {
-		return layouts.update(pane, (layout) => {
-			if (layout.split !== 'none' || layout.order.indexOf(tab) < 0) {
-				return layout;
-			}
-			return { ...layout, active: tab };
-		});
+		return layouts.update(pane, (layout) => selectLayoutTab(layout, tab));
 	},
 
 	closeTab(layouts: LayoutMap, { tab, pane }: LayoutActionCloseTab): LayoutMap {
-		layouts = layouts.update(pane, (layout) => {
-			if (layout.split !== 'none') {
-				return layout;
-			}
-			return paneRemoveTab(layout, tab);
-		});
+		layouts = layouts.update(pane, (layout) => removeLayoutTab(layout, tab));
 		return checkUnsplit(layouts, pane);
 	},
 
 	moveTab(layouts: LayoutMap, { tab, source, dest, pos }: LayoutActionMoveTab): LayoutMap {
 		if (source === dest) {
-			return layouts.update(source, (layout) => {
-				if (layout.split !== 'none' || layout.order.indexOf(tab) < 0) {
-					return layout;
-				}
-				return paneMoveTab(layout, tab, pos);
-			});
+			return layouts.update(source, (layout) => moveLayoutTab(layout, tab, pos));
 		}
 
 		const sourceLayout = getPaneLayout(layouts, source);
@@ -165,55 +193,51 @@ const HANDLERS: LayoutActionHandlerMap = {
 			return layouts;
 		}
 
-		layouts = layouts.set(source, paneRemoveTab(sourceLayout, tab));
-		layouts = layouts.set(dest, {
-			...destLayout,
-			order: insertElementAt(destLayout.order, tab, pos),
-			active: tab,
-		});
+		layouts = layouts.set(source, removeLayoutTab(sourceLayout, tab));
+		layouts = layouts.set(dest, insertLayoutTab(destLayout, tab, pos));
 
 		return checkUnsplit(layouts, source);
 	},
 
 	moveTabSplit(layouts: LayoutMap, { tab, source, dest, dir }: LayoutActionMoveTabSplit): LayoutMap {
 		const destLayout = getPaneLayout(layouts, dest);
-		if (!destLayout || (source === dest && destLayout.order.length === 1)) {
+		if (!destLayout) {
+			return layouts;
+		}
+		if (source === dest && destLayout.order.length === 1) {
 			return layouts;
 		}
 
 		const split = dirToSplit(dir);
 
+		let parent = 0;
 		let index = 0;
-		let parent: [number, SplitLayout] | undefined;
 
 		if (destLayout.parent) {
-			const destParent = getParentLayout(layouts, destLayout);
-			if (destParent[1].split === split) {
-				index = destParent[1].children.indexOf(dest);
+			const destParentLayout = getSplitLayout(layouts, destLayout.parent) || corrupt();
+			if (destParentLayout.split === split) {
+				parent = destLayout.parent;
+				index = destParentLayout.children.indexOf(dest);
 				if (index < 0) {
 					return corrupt();
 				}
-
-				parent = destParent;
 			}
 		}
 
 		if (!parent) {
-			const movedID = unusedID(layouts);
-			layouts = layouts.set(movedID, { ...destLayout, parent: dest });
-			if (source === dest) {
-				source = movedID;
-			}
+			parent = dest;
 
-			parent = [
-				dest,
-				{
-					parent: destLayout.parent,
-					split,
-					children: [movedID],
-				},
-			];
-			layouts = layouts.set(parent[0], parent[1]);
+			const moved = unusedID(layouts);
+			layouts = moveLayout(layouts, dest, moved, parent);
+			layouts = layouts.set(parent, {
+				parent: destLayout.parent,
+				split,
+				children: [moved],
+			});
+
+			if (source === dest) {
+				source = moved;
+			}
 		}
 
 		if (dir === 'right' || dir === 'bottom') {
@@ -223,16 +247,14 @@ const HANDLERS: LayoutActionHandlerMap = {
 		const newID = unusedID(layouts);
 		layouts = layouts.set(newID, {
 			split: 'none',
-			parent: parent[0],
+			parent,
 			order: [],
 			active: null,
 		});
-		layouts = layouts.set(parent[0], {
-			...parent[1],
-			children: insertElementAt(parent[1].children, newID, index),
-		});
+		layouts = layouts.update(parent, (layout) => insertLayoutChild(layout, newID, index));
 
-		return HANDLERS.moveTab(layouts, { type: 'moveTab', tab, source, dest: newID, pos: 0 });
+		// eslint-disable-next-line @typescript-eslint/no-use-before-define
+		return layoutReducer(layouts, moveTab(tab, source, newID, 0));
 	},
 };
 
