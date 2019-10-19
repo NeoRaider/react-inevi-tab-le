@@ -1,4 +1,4 @@
-import { insertElementAt, moveElementAt, removeElement, removeElementAt } from '../util';
+import { insertElementAt, moveElementAt, removeElement, removeElementAt, insertElementsAt } from '../util';
 
 import { Split, Direction, SplitLayout, PaneLayout, LayoutMap, Layout } from './types';
 import {
@@ -129,6 +129,15 @@ function getPaneLayout(layouts: LayoutMap, id: number): PaneLayout | null {
 	return layout;
 }
 
+function reparentChildren(layouts: LayoutMap, children: ReadonlyArray<number>, parent: number): LayoutMap {
+	for (const child of children) {
+		const childLayout = layouts.get(child) || corrupt();
+		layouts = layouts.set(child, { ...childLayout, parent });
+	}
+
+	return layouts;
+}
+
 function moveLayout(layouts: LayoutMap, from: number, to: number, parent: number): LayoutMap {
 	const layout = layouts.get(from) || corrupt();
 
@@ -136,11 +145,34 @@ function moveLayout(layouts: LayoutMap, from: number, to: number, parent: number
 	layouts = layouts.set(to, { ...layout, parent });
 
 	if (layout.split !== 'none') {
-		for (const child of layout.children) {
-			const childLayout = layouts.get(child) || corrupt();
-			layouts = layouts.set(child, { ...childLayout, parent: to });
-		}
+		layouts = reparentChildren(layouts, layout.children, to);
 	}
+
+	return layouts;
+}
+
+function checkMerge(layouts: LayoutMap, id: number): LayoutMap {
+	const layout = layouts.get(id) || corrupt();
+
+	const { parent } = layout;
+	if (!parent || layout.split === 'none') {
+		return layouts;
+	}
+
+	const parentLayout = getSplitLayout(layouts, parent) || corrupt();
+	if (parentLayout.split !== layout.split) {
+		return layouts;
+	}
+
+	const index = parentLayout.children.indexOf(id);
+	if (index < 0) {
+		corrupt();
+	}
+
+	const children = insertElementsAt(removeElementAt(parentLayout.children, index), layout.children, index);
+	layouts = layouts.set(parent, { ...parentLayout, children });
+	layouts = layouts.delete(id);
+	layouts = reparentChildren(layouts, layout.children, parent);
 
 	return layouts;
 }
@@ -157,11 +189,12 @@ function checkUnsplit(layouts: LayoutMap, pane: number): LayoutMap {
 	const parentLayout = getSplitLayout(layouts, parent) || corrupt();
 	const remaining = removeElement(parentLayout.children, pane);
 
-	if (remaining.length == 1) {
-		return moveLayout(layouts, remaining[0], parent, parentLayout.parent);
+	if (remaining.length > 1) {
+		return layouts.set(parent, { ...parentLayout, children: remaining });
 	}
 
-	return layouts.set(parent, { ...parentLayout, children: remaining });
+	layouts = moveLayout(layouts, remaining[0], parent, parentLayout.parent);
+	return checkMerge(layouts, parent);
 }
 
 type LayoutActionType = LayoutAction['type'];

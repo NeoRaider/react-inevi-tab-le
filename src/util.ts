@@ -2,6 +2,10 @@ export function insertElementAt<T>(array: ReadonlyArray<T>, el: T, index: number
 	return [...array.slice(0, index), el, ...array.slice(index)];
 }
 
+export function insertElementsAt<T>(array: ReadonlyArray<T>, els: ReadonlyArray<T>, index: number): ReadonlyArray<T> {
+	return [...array.slice(0, index), ...els, ...array.slice(index)];
+}
+
 export function removeElementAt<T>(array: ReadonlyArray<T>, index: number): ReadonlyArray<T> {
 	return [...array.slice(0, index), ...array.slice(index + 1)];
 }
