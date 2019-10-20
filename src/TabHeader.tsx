@@ -3,7 +3,7 @@ import { useDrag } from 'react-dnd';
 
 import { TabDesc, TabDragDesc, TabDragType } from './Tab';
 import { TabDropArea } from './TabDropArea';
-import { LayoutAction, closeTab, selectTab, moveTab } from './layout/actions';
+import { LayoutAction, closeTab, selectTab, moveTab } from './layout/dockable';
 
 export interface TabHeaderProps {
 	tab: string;

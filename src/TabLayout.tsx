@@ -2,8 +2,7 @@ import * as React from 'react';
 
 import { SplitPane } from 'react-multi-split-pane';
 
-import { Direction } from './layout/types';
-import { moveTabSplit, moveTab } from './layout/actions';
+import { Direction, moveTabSplit, moveTab } from './layout/dockable';
 
 import { InternalTabPane } from './TabPane';
 import { TabViewProps } from './LayoutProvider';

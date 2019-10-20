@@ -1,15 +1,76 @@
-import { insertElementAt, moveElementAt, removeElement, removeElementAt, insertElementsAt } from '../util';
+import { Map } from 'immutable';
 
-import { Split, Direction, SplitLayout, PaneLayout, LayoutMap, Layout } from './types';
-import {
-	LayoutAction,
-	LayoutActionSelectTab,
-	LayoutActionCloseTab,
-	LayoutActionMoveTab,
-	LayoutActionMoveTabSplit,
-	moveTab,
-} from './actions';
+import { insertElementAt, removeElement, removeElementAt, insertElementsAt } from '../util';
 
+import { ActionHandlerMap, ActionHandler } from './action';
+import * as Pane from './pane';
+
+export type Split = 'horizontal' | 'vertical';
+export type Direction = 'left' | 'right' | 'top' | 'bottom';
+
+export interface PaneLayout extends Pane.Layout {
+	readonly parent: number;
+	readonly split: 'none';
+}
+
+export interface SplitLayout {
+	readonly parent: number;
+	readonly split: Split;
+	readonly children: ReadonlyArray<number>;
+}
+
+export type Layout = PaneLayout | SplitLayout;
+export type LayoutMap = Map<number, Layout>;
+
+export interface LayoutActionSelectTab {
+	type: 'selectTab';
+	tab: string;
+	pane: number;
+}
+
+export function selectTab(tab: string, pane: number): LayoutAction {
+	return { type: 'selectTab', tab, pane };
+}
+
+export interface LayoutActionCloseTab {
+	type: 'closeTab';
+	tab: string;
+	pane: number;
+}
+
+export function closeTab(tab: string, pane: number): LayoutAction {
+	return { type: 'closeTab', tab, pane };
+}
+
+export interface LayoutActionMoveTab {
+	type: 'moveTab';
+	tab: string;
+	source: number;
+	dest: number;
+	pos: number;
+}
+
+export function moveTab(tab: string, source: number, dest: number, pos: number): LayoutAction {
+	return { type: 'moveTab', tab, source, dest, pos };
+}
+
+export interface LayoutActionMoveTabSplit {
+	type: 'moveTabSplit';
+	tab: string;
+	source: number;
+	dest: number;
+	dir: Direction;
+}
+
+export function moveTabSplit(tab: string, source: number, dest: number, dir: Direction): LayoutAction {
+	return { type: 'moveTabSplit', tab, source, dest, dir };
+}
+
+export type LayoutAction =
+	| LayoutActionSelectTab
+	| LayoutActionCloseTab
+	| LayoutActionMoveTab
+	| LayoutActionMoveTabSplit;
 function dirToSplit(dir: Direction): Split {
 	switch (dir) {
 		case 'left':
@@ -23,59 +84,6 @@ function dirToSplit(dir: Direction): Split {
 
 function corrupt(): never {
 	throw new Error('Data corruption');
-}
-
-function selectPaneTab(layout: PaneLayout, tab: string): PaneLayout {
-	if (layout.order.indexOf(tab) < 0) {
-		return layout;
-	}
-
-	return { ...layout, active: tab };
-}
-
-function insertPaneTab(layout: PaneLayout, tab: string, pos: number): PaneLayout {
-	return {
-		...layout,
-		order: insertElementAt(layout.order, tab, pos),
-		active: tab,
-	};
-}
-
-function movePaneTab(layout: PaneLayout, tab: string, pos: number): PaneLayout {
-	const { order } = layout;
-	const index = order.indexOf(tab);
-	if (index < 0) {
-		return layout;
-	}
-
-	return {
-		...layout,
-		order: moveElementAt(order, index, pos),
-	};
-}
-
-function removePaneTab(layout: PaneLayout, tab: string): PaneLayout {
-	let { active, order } = layout;
-
-	const index = order.indexOf(tab);
-	if (index < 0) {
-		return layout;
-	}
-
-	order = removeElementAt(order, index);
-
-	if (tab === active) {
-		active = order[Math.min(index, order.length - 1)];
-	}
-	if (active === undefined) {
-		active = null;
-	}
-
-	return {
-		...layout,
-		active,
-		order,
-	};
 }
 
 function insertLayoutChild(layout: Layout, child: number, pos: number): Layout {
@@ -114,10 +122,10 @@ function getPaneLayout(layouts: LayoutMap, id: number): PaneLayout | null {
 }
 
 // Similar to Map.prototype.update(), but ignores missing elements and split layouts
-function updatePaneLayout(layouts: LayoutMap, id: number, updater: (layout: PaneLayout) => PaneLayout): LayoutMap {
+function updatePaneLayout(layouts: LayoutMap, id: number, action: Pane.LayoutAction): LayoutMap {
 	const layout = layouts.get(id);
 	if (layout && layout.split === 'none') {
-		layouts = layouts.set(id, updater(layout));
+		layouts = layouts.set(id, Pane.reducer(layout, action));
 	}
 	return layouts;
 }
@@ -190,26 +198,19 @@ function checkUnsplit(layouts: LayoutMap, pane: number): LayoutMap {
 	return checkMerge(layouts, parent);
 }
 
-type LayoutActionType = LayoutAction['type'];
-type LayoutActionOf<K extends LayoutActionType> = Extract<LayoutAction, { type: K }>;
-type LayoutActionHandler<K extends LayoutActionType> = (layouts: LayoutMap, action: LayoutActionOf<K>) => LayoutMap;
-type LayoutActionHandlerMap = {
-	[K in LayoutActionType]: LayoutActionHandler<K>;
-};
-
-const HANDLERS: LayoutActionHandlerMap = {
+const HANDLERS: ActionHandlerMap<LayoutAction, LayoutMap> = {
 	selectTab(layouts: LayoutMap, { tab, pane }: LayoutActionSelectTab): LayoutMap {
-		return updatePaneLayout(layouts, pane, (layout) => selectPaneTab(layout, tab));
+		return updatePaneLayout(layouts, pane, Pane.selectTab(tab));
 	},
 
 	closeTab(layouts: LayoutMap, { tab, pane }: LayoutActionCloseTab): LayoutMap {
-		layouts = updatePaneLayout(layouts, pane, (layout) => removePaneTab(layout, tab));
+		layouts = updatePaneLayout(layouts, pane, Pane.closeTab(tab));
 		return checkUnsplit(layouts, pane);
 	},
 
 	moveTab(layouts: LayoutMap, { tab, source, dest, pos }: LayoutActionMoveTab): LayoutMap {
 		if (source === dest) {
-			return updatePaneLayout(layouts, source, (layout) => movePaneTab(layout, tab, pos));
+			return updatePaneLayout(layouts, source, Pane.moveTab(tab, pos));
 		}
 
 		const sourceLayout = getPaneLayout(layouts, source);
@@ -219,8 +220,8 @@ const HANDLERS: LayoutActionHandlerMap = {
 			return layouts;
 		}
 
-		layouts = layouts.set(source, removePaneTab(sourceLayout, tab));
-		layouts = layouts.set(dest, insertPaneTab(destLayout, tab, pos));
+		layouts = layouts.set(source, Pane.reducer(sourceLayout, Pane.closeTab(tab)));
+		layouts = layouts.set(dest, Pane.reducer(destLayout, Pane.insertTab(tab, pos)));
 
 		return checkUnsplit(layouts, source);
 	},
@@ -285,6 +286,6 @@ const HANDLERS: LayoutActionHandlerMap = {
 };
 
 export function layoutReducer(layouts: LayoutMap, action: LayoutAction): LayoutMap {
-	const handler = HANDLERS[action.type] as LayoutActionHandler<typeof action.type>;
+	const handler = HANDLERS[action.type] as ActionHandler<LayoutAction, LayoutMap, typeof action.type>;
 	return handler(layouts, action);
 }

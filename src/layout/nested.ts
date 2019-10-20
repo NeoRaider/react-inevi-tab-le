@@ -1,6 +1,6 @@
 import { Map } from 'immutable';
 
-import { Split, Layout, LayoutMap } from './types';
+import { Split, Layout, LayoutMap } from './dockable';
 
 export interface NestedSplitLayout {
 	readonly split: Split;

@@ -1,8 +1,7 @@
 import * as React from 'react';
 import { OutPortal, PortalNode } from 'react-reverse-portal';
 
-import { PaneLayout } from './layout/types';
-import { LayoutAction } from './layout/actions';
+import { LayoutAction, PaneLayout } from './layout/dockable';
 
 import { TabBar } from './TabBar';
 import { TabViewProps } from './LayoutProvider';
