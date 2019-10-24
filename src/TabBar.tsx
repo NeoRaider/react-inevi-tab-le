@@ -3,7 +3,7 @@ import * as React from 'react';
 import { TabDropArea } from './TabDropArea';
 import { TabHeader } from './TabHeader';
 import { moveTab } from './layout/dockable';
-import { InternalTabPaneProps } from './TabPane';
+import { InternalTabPaneProps } from './InternalTabPane';
 
 export function TabBar({ realm, tabs, id, layout, dispatch }: InternalTabPaneProps): JSX.Element {
 	const { order, active } = layout;

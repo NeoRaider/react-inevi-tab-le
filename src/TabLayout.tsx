@@ -4,7 +4,7 @@ import { SplitPane } from 'react-multi-split-pane';
 
 import { Direction, moveTabSplit, moveTab } from './layout/dockable';
 
-import { InternalTabPane } from './TabPane';
+import { InternalTabPane } from './InternalTabPane';
 import { TabViewProps } from './LayoutProvider';
 import { TabDropArea } from './TabDropArea';
 
