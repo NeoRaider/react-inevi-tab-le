@@ -1,22 +1,22 @@
 import * as React from 'react';
 import { useDrop } from 'react-dnd';
 
-import { TabDragDesc, TabDragType } from './Tab';
+import { TabDragDesc, TabDragType, Realm } from './Tab';
 
-export interface TabDropAreaProps {
-	realm: symbol;
-	ignore?: string;
+export interface TabDropAreaProps<TabID> {
+	realm: Realm<TabID>;
+	ignore?: TabID;
 	className: string;
 
-	onDrop: (tab: string, source: number) => void;
+	onDrop: (tab: TabID) => void;
 }
 
-export function TabDropArea({ className, realm, ignore, onDrop }: TabDropAreaProps): JSX.Element {
+export function TabDropArea<TabID>({ className, realm, ignore, onDrop }: TabDropAreaProps<TabID>): JSX.Element {
 	const [{ active, hover }, drop] = useDrop({
 		accept: TabDragType,
-		canDrop: (tab: TabDragDesc) => tab.realm === realm && tab.id !== ignore,
-		drop: (tab: TabDragDesc) => {
-			onDrop(tab.id, tab.source);
+		canDrop: (tab: TabDragDesc<TabID>) => tab.realm === realm && tab.id !== ignore,
+		drop: (tab: TabDragDesc<TabID>) => {
+			onDrop(tab.id);
 		},
 		collect: (monitor) => ({
 			active: monitor.canDrop(),

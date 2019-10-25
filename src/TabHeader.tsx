@@ -1,24 +1,23 @@
 import * as React from 'react';
 import { useDrag } from 'react-dnd';
 
-import { TabDesc, TabDragDesc, TabDragType } from './Tab';
+import { TabDesc, TabDragDesc, TabDragType, Realm } from './Tab';
 import { TabDropArea } from './TabDropArea';
-import { LayoutAction, closeTab, selectTab, moveTab } from './layout/dockable';
+import { closeTab, selectTab, moveTab, GenericLayoutAction } from './layout/pane';
 
-export interface TabHeaderProps {
-	tab: string;
-	pane: number;
+export interface TabHeaderProps<TabID> {
+	tab: TabID;
 	index: number;
 	desc: TabDesc;
 	isActive: boolean;
 
-	realm: symbol;
+	realm: Realm<TabID>;
 
-	dispatch(action: LayoutAction): void;
+	dispatch(action: GenericLayoutAction<TabID>): void;
 }
 
-export function TabHeader({ tab, pane, index, desc, isActive, realm, dispatch }: TabHeaderProps): JSX.Element {
-	const item: TabDragDesc = { type: TabDragType, id: tab, source: pane, realm };
+export function TabHeader<TabID>({ tab, index, desc, isActive, realm, dispatch }: TabHeaderProps<TabID>): JSX.Element {
+	const item: TabDragDesc<TabID> = { type: TabDragType, id: tab, realm };
 	const [{ isDragging }, drag] = useDrag({
 		item,
 		collect: (monitor) => ({
@@ -29,12 +28,12 @@ export function TabHeader({ tab, pane, index, desc, isActive, realm, dispatch }:
 	const handleMouseDown = (e: React.MouseEvent): void => {
 		switch (e.button) {
 			case 0:
-				dispatch(selectTab(tab, pane));
+				dispatch(selectTab(tab));
 				break;
 
 			case 1:
 				if (desc.closable !== false) {
-					dispatch(closeTab(tab, pane));
+					dispatch(closeTab(tab));
 				}
 				break;
 		}
@@ -49,7 +48,7 @@ export function TabHeader({ tab, pane, index, desc, isActive, realm, dispatch }:
 		e.preventDefault();
 		e.stopPropagation();
 
-		dispatch(closeTab(tab, pane));
+		dispatch(closeTab(tab));
 	};
 
 	const className =
@@ -61,14 +60,14 @@ export function TabHeader({ tab, pane, index, desc, isActive, realm, dispatch }:
 	return (
 		<div ref={drag} className={className} onMouseDown={handleMouseDown}>
 			<div className='dropAreaContainer'>
-				<TabDropArea
+				<TabDropArea<TabID>
 					realm={realm}
-					onDrop={(tab, source): void => dispatch(moveTab(tab, source, pane, index))}
+					onDrop={(tab): void => dispatch(moveTab(tab, index))}
 					className='left'
 				/>
-				<TabDropArea
+				<TabDropArea<TabID>
 					realm={realm}
-					onDrop={(tab, source): void => dispatch(moveTab(tab, source, pane, index + 1))}
+					onDrop={(tab): void => dispatch(moveTab(tab, index + 1))}
 					className='right'
 				/>
 			</div>

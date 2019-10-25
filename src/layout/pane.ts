@@ -8,45 +8,51 @@ export interface Layout {
 }
 
 // Actions and action creators
-export interface LayoutActionSelectTab {
+export interface LayoutActionSelectTab<TabID> {
 	type: 'selectTab';
-	tab: string;
+	tab: TabID;
 }
-export function selectTab(tab: string): LayoutAction {
+export function selectTab<TabID>(tab: TabID): GenericLayoutAction<TabID> {
 	return { type: 'selectTab', tab };
 }
 
-export interface LayoutActionInsertTab {
+export interface LayoutActionInsertTab<TabID> {
 	type: 'insertTab';
-	tab: string;
+	tab: TabID;
 	pos: number;
 }
-export function insertTab(tab: string, pos: number): LayoutAction {
+export function insertTab<TabID>(tab: TabID, pos: number): GenericLayoutAction<TabID> {
 	return { type: 'insertTab', tab, pos };
 }
 
-export interface LayoutActionMoveTab {
+export interface LayoutActionMoveTab<TabID> {
 	type: 'moveTab';
-	tab: string;
+	tab: TabID;
 	pos: number;
 }
-export function moveTab(tab: string, pos: number): LayoutAction {
+export function moveTab<TabID>(tab: TabID, pos: number): GenericLayoutAction<TabID> {
 	return { type: 'moveTab', tab, pos };
 }
 
-export interface LayoutActionCloseTab {
+export interface LayoutActionCloseTab<TabID> {
 	type: 'closeTab';
-	tab: string;
+	tab: TabID;
 }
-export function closeTab(tab: string): LayoutAction {
+export function closeTab<TabID>(tab: TabID): GenericLayoutAction<TabID> {
 	return { type: 'closeTab', tab };
 }
 
-export type LayoutAction = LayoutActionSelectTab | LayoutActionInsertTab | LayoutActionMoveTab | LayoutActionCloseTab;
+export type GenericLayoutAction<TabID> =
+	| LayoutActionSelectTab<TabID>
+	| LayoutActionInsertTab<TabID>
+	| LayoutActionMoveTab<TabID>
+	| LayoutActionCloseTab<TabID>;
+
+export type LayoutAction = GenericLayoutAction<string>;
 
 // Action handlers
 const HANDLERS: ActionHandlerMap<LayoutAction, Layout> = {
-	selectTab(layout: Layout, { tab }: LayoutActionSelectTab): Layout {
+	selectTab(layout: Layout, { tab }: LayoutActionSelectTab<string>): Layout {
 		if (layout.order.indexOf(tab) < 0) {
 			return layout;
 		}
@@ -54,7 +60,7 @@ const HANDLERS: ActionHandlerMap<LayoutAction, Layout> = {
 		return { ...layout, active: tab };
 	},
 
-	insertTab(layout: Layout, { tab, pos }: LayoutActionInsertTab): Layout {
+	insertTab(layout: Layout, { tab, pos }: LayoutActionInsertTab<string>): Layout {
 		return {
 			...layout,
 			order: insertElementAt(layout.order, tab, pos),
@@ -62,7 +68,7 @@ const HANDLERS: ActionHandlerMap<LayoutAction, Layout> = {
 		};
 	},
 
-	moveTab(layout: Layout, { tab, pos }: LayoutActionMoveTab): Layout {
+	moveTab(layout: Layout, { tab, pos }: LayoutActionMoveTab<string>): Layout {
 		const { order } = layout;
 		const index = order.indexOf(tab);
 		if (index < 0) {
@@ -75,7 +81,7 @@ const HANDLERS: ActionHandlerMap<LayoutAction, Layout> = {
 		};
 	},
 
-	closeTab(layout: Layout, { tab }: LayoutActionCloseTab): Layout {
+	closeTab(layout: Layout, { tab }: LayoutActionCloseTab<string>): Layout {
 		let { active, order } = layout;
 
 		const index = order.indexOf(tab);

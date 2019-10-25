@@ -1,24 +1,31 @@
 import * as React from 'react';
+const { useRef } = React;
+
 import { OutPortal, PortalNode } from 'react-reverse-portal';
 
-import { LayoutAction, PaneLayout } from './layout/dockable';
+import { Layout, GenericLayoutAction } from './layout/pane';
 
 import { TabBar } from './TabBar';
-import { Tab } from './Tab';
+import { Tab, Realm } from './Tab';
 
-export interface InternalTabPaneProps {
-	realm: symbol;
-	id: number;
+export function useRealm<TabID>(): Realm<TabID> {
+	return (useRef(Symbol('Realm')).current as unknown) as Realm<TabID>;
+}
+
+export interface InternalTabPaneProps<TabID> {
+	realm: Realm<TabID>;
 	tabs: ReadonlyMap<string, Tab>;
 	portals: ReadonlyMap<string, PortalNode>;
 
-	dispatch(action: LayoutAction): void;
-	layout: PaneLayout;
+	getID(tab: string): TabID;
+
+	dispatch(action: GenericLayoutAction<TabID>): void;
+	layout: Layout;
 
 	children?: React.ReactNode;
 }
 
-export function InternalTabPane(props: InternalTabPaneProps): JSX.Element {
+export function InternalTabPane<TabID>(props: InternalTabPaneProps<TabID>): JSX.Element {
 	const { children, layout, portals } = props;
 	const { active } = layout;
 	const activePortal = active ? portals.get(active) : undefined;

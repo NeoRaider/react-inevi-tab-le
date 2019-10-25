@@ -1,26 +1,36 @@
 import * as React from 'react';
+const { useReducer } = React;
+
+import { PortalNode } from 'react-reverse-portal';
 
 import { SplitPane } from 'react-multi-split-pane';
 
-import { Direction, moveTabSplit, moveTab } from './layout/dockable';
+import { Direction, moveTabSplit, moveTab, DockableTab, LayoutAction, LayoutMap, reducer } from './layout/dockable';
+import * as Pane from './layout/pane';
 
-import { InternalTabPane } from './InternalTabPane';
-import { TabViewProps } from './LayoutProvider';
+import { InternalTabPane, useRealm } from './InternalTabPane';
 import { TabDropArea } from './TabDropArea';
+import { Tab, Realm } from './Tab';
+import { useTabPortals } from './LayoutProvider';
 
-interface TabSplitAreaProps extends TabViewProps {
+interface TabSplitAreaProps {
+	realm: Realm<DockableTab>;
+
+	pane: number;
+	dispatch: (action: LayoutAction) => void;
+
 	dir: Direction;
-	ignore?: string;
+	ignore?: DockableTab;
 }
 
-function TabSplitArea({ realm, id, dir, ignore, dispatch }: TabSplitAreaProps): JSX.Element {
+function TabSplitArea({ realm, pane, dir, ignore, dispatch }: TabSplitAreaProps): JSX.Element {
 	return (
 		<>
 			<TabDropArea
 				realm={realm}
 				ignore={ignore}
-				onDrop={(tab, source): void => {
-					dispatch(moveTabSplit(tab, source, id, dir));
+				onDrop={(tab): void => {
+					dispatch(moveTabSplit(tab, pane, dir));
 				}}
 				className={dir}
 			/>
@@ -29,47 +39,104 @@ function TabSplitArea({ realm, id, dir, ignore, dispatch }: TabSplitAreaProps): 
 	);
 }
 
-export function TabLayout(props: TabViewProps): JSX.Element {
+interface InternalTabLayoutProps {
+	realm: Realm<DockableTab>;
+	tabs: ReadonlyMap<string, Tab>;
+	portals: ReadonlyMap<string, PortalNode>;
+
+	dispatch(action: LayoutAction): void;
+
+	layouts: LayoutMap;
+	id: number;
+}
+
+export function InternalTabLayout(props: InternalTabLayoutProps): JSX.Element {
 	const { id, layouts } = props;
 
 	// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 	const layout = layouts.get(id)!;
 
-	if (layout.split === 'none') {
-		const { realm, dispatch, tabs, portals } = props;
-		const { order } = layout;
-
-		const ignore = order.length === 1 ? order[0] : undefined;
-
+	if (layout.split !== 'none') {
+		const { children, split } = layout;
 		return (
-			<InternalTabPane {...{ realm, id, tabs, portals, dispatch, layout }}>
-				<TabSplitArea {...props} dir='top' ignore={ignore} />
-				<TabSplitArea {...props} dir='bottom' ignore={ignore} />
-				<TabSplitArea {...props} dir='left' ignore={ignore} />
-				<TabSplitArea {...props} dir='right' ignore={ignore} />
-				<TabDropArea
-					realm={realm}
-					ignore={ignore}
-					onDrop={(tab, source): void => {
-						if (!order.includes(tab)) {
-							dispatch(moveTab(tab, source, id, order.length));
-						}
-					}}
-					className='center'
-				/>
-				<div className='dropIndicator' />
-			</InternalTabPane>
+			<div className='tabLayout'>
+				<SplitPane split={split} minSize={100}>
+					{children.map((child) => (
+						<InternalTabLayout {...props} key={child} id={child} />
+					))}
+				</SplitPane>
+			</div>
 		);
 	}
 
-	const { children, split } = layout;
+	const { realm, dispatch, tabs, portals } = props;
+	const { order } = layout;
+
+	const getID = (tab: string): DockableTab => [tab, id];
+	const paneDispatch = (action: Pane.GenericLayoutAction<DockableTab>): void => {
+		switch (action.type) {
+			case 'selectTab':
+			case 'closeTab':
+				dispatch(action);
+				break;
+
+			case 'moveTab':
+				dispatch({ ...action, dest: id });
+				break;
+
+			default:
+				throw new Error(`unexpected ${action.type} pane action`);
+		}
+	};
+
+	const ignore = order.length === 1 ? getID(order[0]) : undefined;
+
 	return (
-		<div className='tabLayout'>
-			<SplitPane split={split} minSize={100}>
-				{children.map((child) => (
-					<TabLayout {...props} key={child} id={child} />
-				))}
-			</SplitPane>
-		</div>
+		<InternalTabPane<DockableTab>
+			{...{ realm, id, tabs, portals, layout }}
+			getID={getID}
+			dispatch={paneDispatch}
+		>
+			<TabSplitArea realm={realm} pane={id} dispatch={dispatch} dir='top' ignore={ignore} />
+			<TabSplitArea realm={realm} pane={id} dispatch={dispatch} dir='bottom' ignore={ignore} />
+			<TabSplitArea realm={realm} pane={id} dispatch={dispatch} dir='left' ignore={ignore} />
+			<TabSplitArea realm={realm} pane={id} dispatch={dispatch} dir='right' ignore={ignore} />
+			<TabDropArea
+				realm={realm}
+				ignore={ignore}
+				onDrop={(tab): void => {
+					if (!order.includes(tab[0])) {
+						dispatch(moveTab(tab, id, order.length));
+					}
+				}}
+				className='center'
+			/>
+			<div className='dropIndicator' />
+		</InternalTabPane>
+	);
+}
+
+interface TabLayoutProps {
+	initialLayout: LayoutMap;
+	tabs: ReadonlyMap<string, Tab>;
+}
+
+export function TabLayout({ initialLayout, tabs }: TabLayoutProps): JSX.Element {
+	const realm = useRealm<DockableTab>();
+	const [layouts, dispatch] = useReducer<React.Reducer<LayoutMap, LayoutAction>>(reducer, initialLayout);
+
+	const tabPortals = useTabPortals(tabs);
+	const portals = new Map<string, PortalNode>();
+	const inPortals: JSX.Element[] = [];
+	tabPortals.forEach(([portal, el], id) => {
+		portals.set(id, portal);
+		inPortals.push(el);
+	});
+
+	return (
+		<>
+			<InternalTabLayout {...{ realm, tabs, portals, dispatch, layouts }} id={1} />
+			{inPortals}
+		</>
 	);
 }

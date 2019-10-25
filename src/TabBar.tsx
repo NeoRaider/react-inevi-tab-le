@@ -2,27 +2,26 @@ import * as React from 'react';
 
 import { TabDropArea } from './TabDropArea';
 import { TabHeader } from './TabHeader';
-import { moveTab } from './layout/dockable';
+import { moveTab } from './layout/pane';
 import { InternalTabPaneProps } from './InternalTabPane';
 
-export function TabBar({ realm, tabs, id, layout, dispatch }: InternalTabPaneProps): JSX.Element {
+export function TabBar<TabID>({ realm, tabs, layout, dispatch, getID }: InternalTabPaneProps<TabID>): JSX.Element {
 	const { order, active } = layout;
 
-	const entries = order.map((tabID, i) => {
-		const tab = tabs.get(tabID);
+	const entries = order.map((tabKey, i) => {
+		const tab = tabs.get(tabKey);
 		if (!tab) {
 			return null;
 		}
 
 		return (
-			<TabHeader
+			<TabHeader<TabID>
 				realm={realm}
-				pane={id}
 				index={i}
-				key={tabID}
-				tab={tabID}
+				key={tabKey}
+				tab={getID(tabKey)}
 				desc={tab.desc}
-				isActive={tabID === active}
+				isActive={tabKey === active}
 				dispatch={dispatch}
 			/>
 		);
@@ -31,9 +30,9 @@ export function TabBar({ realm, tabs, id, layout, dispatch }: InternalTabPanePro
 	return (
 		<div className='tabBar'>
 			{entries}
-			<TabDropArea
+			<TabDropArea<TabID>
 				realm={realm}
-				onDrop={(tab, source): void => dispatch(moveTab(tab, source, id, order.length))}
+				onDrop={(tab): void => dispatch(moveTab(tab, order.length))}
 				className='rest'
 			/>
 		</div>

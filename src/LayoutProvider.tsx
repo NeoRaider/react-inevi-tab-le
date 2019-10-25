@@ -1,9 +1,8 @@
 import * as React from 'react';
-const { useReducer, useRef } = React;
+const { useRef } = React;
 
 import { PortalNode, createPortalNode, InPortal } from 'react-reverse-portal';
 
-import { LayoutMap, LayoutAction, layoutReducer } from './layout/dockable';
 import { Tab } from './Tab';
 
 function useRefMap<K, V1, V2>(inMap: ReadonlyMap<K, V1>, f: (v: V1, k: K) => V2): Map<K, V2> {
@@ -19,60 +18,16 @@ function useRefMap<K, V1, V2>(inMap: ReadonlyMap<K, V1>, f: (v: V1, k: K) => V2)
 	return map.current;
 }
 
-export interface TabViewProps {
-	realm: symbol;
-	id: number;
-	layouts: LayoutMap;
-	tabs: ReadonlyMap<string, Tab>;
-	portals: ReadonlyMap<string, PortalNode>;
-
-	dispatch(action: LayoutAction): void;
-}
-
-export interface LayoutProviderProps {
-	initialLayout: LayoutMap;
-	tabs: ReadonlyMap<string, Tab>;
-
-	view: React.ComponentType<TabViewProps>;
-}
-
-export function LayoutProvider({ initialLayout, tabs, view }: LayoutProviderProps): JSX.Element | null {
-	const realm = useRef(Symbol('Realm')).current;
-
-	const [layouts, dispatch] = useReducer(layoutReducer, initialLayout);
-
-	const tabPortals = useRefMap(tabs, (tab): [Tab, PortalNode] => {
+export function useTabPortals(tabs: ReadonlyMap<string, Tab>): Map<string, [PortalNode, JSX.Element]> {
+	return useRefMap(tabs, ({ content }, key): [PortalNode, JSX.Element] => {
 		const portal = createPortalNode();
 		portal.className = 'tabContent';
-		return [tab, portal];
-	});
 
-	const View = view;
-
-	const portals = new Map<string, PortalNode>();
-	const inPortals: JSX.Element[] = [];
-	tabPortals.forEach(([{ content }, portal], id) => {
-		portals.set(id, portal);
-		inPortals.push(
-			<InPortal key={id} node={portal}>
+		const el = (
+			<InPortal key={key} node={portal}>
 				{content}
-			</InPortal>,
+			</InPortal>
 		);
+		return [portal, el];
 	});
-
-	return (
-		<>
-			<View
-				id={1}
-				{...{
-					realm,
-					layouts,
-					dispatch,
-					tabs,
-					portals,
-				}}
-			/>
-			{inPortals}
-		</>
-	);
 }

@@ -1,3 +1,5 @@
+export type Realm<TabID> = { _brand: TabID };
+
 export interface TabDesc {
 	title: string;
 	icon?: string;
@@ -9,11 +11,10 @@ export interface Tab {
 	content: React.ReactNode;
 }
 
-export interface TabDragDesc {
+export interface TabDragDesc<TabID> {
 	type: symbol;
-	id: string;
-	source: number;
-	realm: symbol;
+	realm: Realm<TabID>;
+	id: TabID;
 }
 
 export const TabDragType = Symbol('Tab');

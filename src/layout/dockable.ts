@@ -3,10 +3,14 @@ import { Map } from 'immutable';
 import { insertElementAt, removeElement, removeElementAt, insertElementsAt } from '../util';
 
 import { ActionHandlerMap, ActionHandler } from './action';
+
 import * as Pane from './pane';
+const { selectTab, closeTab } = Pane;
 
 export type Split = 'horizontal' | 'vertical';
 export type Direction = 'left' | 'right' | 'top' | 'bottom';
+
+export type DockableTab = [string, number];
 
 export interface PaneLayout extends Pane.Layout {
 	readonly parent: number;
@@ -22,48 +26,31 @@ export interface SplitLayout {
 export type Layout = PaneLayout | SplitLayout;
 export type LayoutMap = Map<number, Layout>;
 
-export interface LayoutActionSelectTab {
-	type: 'selectTab';
-	tab: string;
-	pane: number;
-}
+export { selectTab, closeTab };
 
-export function selectTab(tab: string, pane: number): LayoutAction {
-	return { type: 'selectTab', tab, pane };
-}
-
-export interface LayoutActionCloseTab {
-	type: 'closeTab';
-	tab: string;
-	pane: number;
-}
-
-export function closeTab(tab: string, pane: number): LayoutAction {
-	return { type: 'closeTab', tab, pane };
-}
+export type LayoutActionSelectTab = Pane.LayoutActionSelectTab<DockableTab>;
+export type LayoutActionCloseTab = Pane.LayoutActionCloseTab<DockableTab>;
 
 export interface LayoutActionMoveTab {
 	type: 'moveTab';
-	tab: string;
-	source: number;
+	tab: DockableTab;
 	dest: number;
 	pos: number;
 }
 
-export function moveTab(tab: string, source: number, dest: number, pos: number): LayoutAction {
-	return { type: 'moveTab', tab, source, dest, pos };
+export function moveTab(tab: DockableTab, dest: number, pos: number): LayoutAction {
+	return { type: 'moveTab', tab, dest, pos };
 }
 
 export interface LayoutActionMoveTabSplit {
 	type: 'moveTabSplit';
-	tab: string;
-	source: number;
+	tab: DockableTab;
 	dest: number;
 	dir: Direction;
 }
 
-export function moveTabSplit(tab: string, source: number, dest: number, dir: Direction): LayoutAction {
-	return { type: 'moveTabSplit', tab, source, dest, dir };
+export function moveTabSplit(tab: DockableTab, dest: number, dir: Direction): LayoutAction {
+	return { type: 'moveTabSplit', tab, dest, dir };
 }
 
 export type LayoutAction =
@@ -71,6 +58,7 @@ export type LayoutAction =
 	| LayoutActionCloseTab
 	| LayoutActionMoveTab
 	| LayoutActionMoveTabSplit;
+
 function dirToSplit(dir: Direction): Split {
 	switch (dir) {
 		case 'left':
@@ -199,16 +187,16 @@ function checkUnsplit(layouts: LayoutMap, pane: number): LayoutMap {
 }
 
 const HANDLERS: ActionHandlerMap<LayoutAction, LayoutMap> = {
-	selectTab(layouts: LayoutMap, { tab, pane }: LayoutActionSelectTab): LayoutMap {
+	selectTab(layouts: LayoutMap, { tab: [tab, pane] }: LayoutActionSelectTab): LayoutMap {
 		return updatePaneLayout(layouts, pane, Pane.selectTab(tab));
 	},
 
-	closeTab(layouts: LayoutMap, { tab, pane }: LayoutActionCloseTab): LayoutMap {
+	closeTab(layouts: LayoutMap, { tab: [tab, pane] }: LayoutActionCloseTab): LayoutMap {
 		layouts = updatePaneLayout(layouts, pane, Pane.closeTab(tab));
 		return checkUnsplit(layouts, pane);
 	},
 
-	moveTab(layouts: LayoutMap, { tab, source, dest, pos }: LayoutActionMoveTab): LayoutMap {
+	moveTab(layouts: LayoutMap, { tab: [tab, source], dest, pos }: LayoutActionMoveTab): LayoutMap {
 		if (source === dest) {
 			return updatePaneLayout(layouts, source, Pane.moveTab(tab, pos));
 		}
@@ -226,7 +214,7 @@ const HANDLERS: ActionHandlerMap<LayoutAction, LayoutMap> = {
 		return checkUnsplit(layouts, source);
 	},
 
-	moveTabSplit(layouts: LayoutMap, { tab, source, dest, dir }: LayoutActionMoveTabSplit): LayoutMap {
+	moveTabSplit(layouts: LayoutMap, { tab: [tab, source], dest, dir }: LayoutActionMoveTabSplit): LayoutMap {
 		const destLayout = getPaneLayout(layouts, dest);
 		if (!destLayout) {
 			return layouts;
@@ -281,11 +269,11 @@ const HANDLERS: ActionHandlerMap<LayoutAction, LayoutMap> = {
 		layouts = layouts.update(parent, (layout) => insertLayoutChild(layout, newID, index));
 
 		// eslint-disable-next-line @typescript-eslint/no-use-before-define
-		return layoutReducer(layouts, moveTab(tab, source, newID, 0));
+		return reducer(layouts, moveTab([tab[0], source], newID, 0));
 	},
 };
 
-export function layoutReducer(layouts: LayoutMap, action: LayoutAction): LayoutMap {
+export function reducer(layouts: LayoutMap, action: LayoutAction): LayoutMap {
 	const handler = HANDLERS[action.type] as ActionHandler<LayoutAction, LayoutMap, typeof action.type>;
 	return handler(layouts, action);
 }
