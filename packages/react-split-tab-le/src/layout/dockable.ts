@@ -1,11 +1,11 @@
 import { Map } from 'immutable';
 
-import { insertElementAt, removeElement, removeElementAt, insertElementsAt } from '../util';
+import { ActionHandlerMap, ActionHandler } from 'react-inevi-tab-le/dist/layout/action';
 
-import { ActionHandlerMap, ActionHandler } from './action';
-
-import * as Pane from './pane';
+import * as Pane from 'react-inevi-tab-le/dist/layout/pane';
 const { selectTab, closeTab } = Pane;
+
+import { insertElementAt, removeElement, removeElementAt, insertElementsAt } from './util';
 
 export type Split = 'horizontal' | 'vertical';
 export type Direction = 'left' | 'right' | 'top' | 'bottom';

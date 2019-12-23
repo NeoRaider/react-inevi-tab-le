@@ -1,7 +1,15 @@
 {
-	"name": "react-dockable-tabs",
+	"name": "react-split-tab-le",
 	"version": "0.0.0",
-	"description": "Components for flexible tab-based UIs",
+	"description": "Component for flexible tab-based UIs with React",
+	"keywords": [
+		"react",
+		"react-component",
+		"tabs",
+		"draggable",
+		"splittable",
+		"typescript"
+	],
 	"author": "Matthias Schiffer <mschiffer@universe-factory.net>",
 	"homepage": "https://github.com/NeoRaider/react-dockable-tabs#readme",
 	"license": "MIT",
@@ -43,6 +51,7 @@
 		"react": "^16.12.0",
 		"react-dnd": "^10.0.2",
 		"react-dom": "^16.12.0",
+		"react-inevi-tab-le": "0.0.0",
 		"react-multi-split-pane": "^0.3.0",
 		"react-reverse-portal": "^1.0.4"
 	}

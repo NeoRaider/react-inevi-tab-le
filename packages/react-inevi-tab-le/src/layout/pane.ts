@@ -1,5 +1,5 @@
 import { ActionHandlerMap, ActionHandler } from './action';
-import { insertElementAt, moveElementAt, removeElementAt } from '../util';
+import { insertElementAt, moveElementAt, removeElementAt } from './util';
 
 // State type
 export interface Layout {

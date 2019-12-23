@@ -1,0 +1,54 @@
+{
+	"name": "react-inevi-tab-le",
+	"version": "0.0.0",
+	"description": "Simple tab component with draggable tabs for React",
+	"keywords": [
+		"react",
+		"react-component",
+		"tabs",
+		"draggable",
+		"typescript"
+	],
+	"author": "Matthias Schiffer <mschiffer@universe-factory.net>",
+	"homepage": "https://github.com/NeoRaider/react-dockable-tabs#readme",
+	"license": "MIT",
+	"main": "dist/index.js",
+	"files": [
+		"dist"
+	],
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/NeoRaider/react-dockable-tabs.git"
+	},
+	"bugs": {
+		"url": "https://github.com/NeoRaider/react-dockable-tabs/issues"
+	},
+	"scripts": {
+		"prebuild": "yarn run clean",
+		"clean": "rimraf dist",
+		"build": "tsc",
+		"build:watch": "tsc -w",
+		"lint": "eslint 'src/**/*.ts' 'src/**/*.tsx'",
+		"prepare": "yarn run build",
+		"prepublishOnly": "yarn run lint"
+	},
+	"devDependencies": {
+		"@types/react": "^16.9.17",
+		"@typescript-eslint/eslint-plugin": "^2.12.0",
+		"@typescript-eslint/parser": "^2.12.0",
+		"eslint": "^6.8.0",
+		"eslint-config-prettier": "^6.7.0",
+		"eslint-plugin-prettier": "^3.1.2",
+		"eslint-plugin-react": "^7.17.0",
+		"eslint-plugin-react-hooks": "^2.3.0",
+		"prettier": "^1.19.1",
+		"rimraf": "^3.0.0",
+		"typescript": "^3.7.4"
+	},
+	"dependencies": {
+		"react": "^16.12.0",
+		"react-dnd": "^10.0.2",
+		"react-dom": "^16.12.0",
+		"react-reverse-portal": "^1.0.4"
+	}
+}

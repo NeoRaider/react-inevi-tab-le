@@ -5,13 +5,14 @@ import { PortalNode } from 'react-reverse-portal';
 
 import { SplitPane } from 'react-multi-split-pane';
 
-import { Direction, moveTabSplit, moveTab, DockableTab, LayoutAction, LayoutMap, reducer } from './layout/dockable';
-import * as Pane from './layout/pane';
+import * as Pane from 'react-inevi-tab-le/dist/layout/pane';
 
-import { InternalTabPane, useRealm } from './InternalTabPane';
-import { TabDropArea } from './TabDropArea';
-import { Tab, Realm } from './Tab';
-import { useTabPortals } from './LayoutProvider';
+import { InternalTabPane, useRealm } from 'react-inevi-tab-le/dist/InternalTabPane';
+import { TabDropArea } from 'react-inevi-tab-le/dist/TabDropArea';
+import { Tab, Realm } from 'react-inevi-tab-le/dist/Tab';
+import { useTabPortals } from 'react-inevi-tab-le/dist/LayoutProvider';
+
+import { Direction, moveTabSplit, moveTab, DockableTab, LayoutAction, LayoutMap, reducer } from './layout/dockable';
 
 interface TabSplitAreaProps {
 	realm: Realm<DockableTab>;
