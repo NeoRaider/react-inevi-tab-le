@@ -15,7 +15,8 @@
 	"license": "MIT",
 	"main": "dist/index.js",
 	"files": [
-		"dist"
+		"dist",
+		"style.css"
 	],
 	"repository": {
 		"type": "git",
