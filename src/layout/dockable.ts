@@ -269,7 +269,7 @@ const HANDLERS: ActionHandlerMap<LayoutAction, LayoutMap> = {
 		layouts = layouts.update(parent, (layout) => insertLayoutChild(layout, newID, index));
 
 		// eslint-disable-next-line @typescript-eslint/no-use-before-define
-		return reducer(layouts, moveTab([tab[0], source], newID, 0));
+		return reducer(layouts, moveTab([tab, source], newID, 0));
 	},
 };
 
