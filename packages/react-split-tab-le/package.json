@@ -11,7 +11,7 @@
 		"typescript"
 	],
 	"author": "Matthias Schiffer <mschiffer@universe-factory.net>",
-	"homepage": "https://github.com/NeoRaider/react-dockable-tabs#readme",
+	"homepage": "https://github.com/NeoRaider/react-inevi-tab-le/tree/master/packages/react-split-tab-le",
 	"license": "MIT",
 	"main": "dist/index.js",
 	"files": [
@@ -20,10 +20,10 @@
 	],
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/NeoRaider/react-dockable-tabs.git"
+		"url": "git+https://github.com/NeoRaider/react-inevi-tab-le.git"
 	},
 	"bugs": {
-		"url": "https://github.com/NeoRaider/react-dockable-tabs/issues"
+		"url": "https://github.com/NeoRaider/react-inevi-tab-le/issues"
 	},
 	"scripts": {
 		"prebuild": "yarn run clean",
