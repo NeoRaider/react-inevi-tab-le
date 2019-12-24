@@ -4,7 +4,8 @@
 	"version": "0.0.0",
 	"main": "src/index.tsx",
 	"scripts": {
-		"start": "webpack-dev-server"
+		"start": "webpack-dev-server",
+		"lint": "eslint 'src/**/*.tsx'"
 	},
 	"devDependencies": {
 		"@types/react": "^16.9.17",

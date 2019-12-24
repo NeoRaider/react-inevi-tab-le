@@ -35,6 +35,7 @@ function KeepScroll({ children }: { children: React.ReactNode }): JSX.Element {
 					scrollPos.current = ref.current.scrollTop;
 				}
 			}}
+			// eslint-disable-next-line @typescript-eslint/no-empty-function
 			onWheel={(): void => {}}
 		>
 			{children}
