@@ -234,7 +234,7 @@ const HANDLERS: ActionHandlerMap<LayoutAction, LayoutMap> = {
 				parent = destLayout.parent;
 				index = destParentLayout.children.indexOf(dest);
 				if (index < 0) {
-					return corrupt();
+					corrupt();
 				}
 			}
 		}
