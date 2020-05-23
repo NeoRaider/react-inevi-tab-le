@@ -1,7 +1,7 @@
 import * as React from 'react';
 const { useRef } = React;
 
-import { PortalNode, createPortalNode, InPortal } from 'react-reverse-portal';
+import { HtmlPortalNode, createHtmlPortalNode, InPortal } from 'react-reverse-portal';
 
 import { Tab } from './Tab';
 
@@ -18,10 +18,10 @@ function useRefMap<K, V1, V2>(inMap: ReadonlyMap<K, V1>, f: (v: V1, k: K) => V2)
 	return map.current;
 }
 
-export function useTabPortals(tabs: ReadonlyMap<string, Tab>): Map<string, [PortalNode, JSX.Element]> {
-	return useRefMap(tabs, ({ content }, key): [PortalNode, JSX.Element] => {
-		const portal = createPortalNode();
-		portal.className = 'tabContent';
+export function useTabPortals(tabs: ReadonlyMap<string, Tab>): Map<string, [HtmlPortalNode, JSX.Element]> {
+	return useRefMap(tabs, ({ content }, key): [HtmlPortalNode, JSX.Element] => {
+		const portal = createHtmlPortalNode();
+		portal.element.className = 'tabContent';
 
 		const el = (
 			<InPortal key={key} node={portal}>

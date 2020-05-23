@@ -1,7 +1,7 @@
 import * as React from 'react';
 const { useReducer } = React;
 
-import { PortalNode } from 'react-reverse-portal';
+import { HtmlPortalNode } from 'react-reverse-portal';
 
 import { SplitPane } from 'react-multi-split-pane';
 
@@ -43,7 +43,7 @@ function TabSplitArea({ realm, pane, dir, ignore, dispatch }: TabSplitAreaProps)
 interface InternalTabLayoutProps {
 	realm: Realm<DockableTab>;
 	tabs: ReadonlyMap<string, Tab>;
-	portals: ReadonlyMap<string, PortalNode>;
+	portals: ReadonlyMap<string, HtmlPortalNode>;
 
 	dispatch(action: LayoutAction): void;
 
@@ -127,7 +127,7 @@ export function TabLayout({ initialLayout, tabs }: TabLayoutProps): JSX.Element 
 	const [layouts, dispatch] = useReducer<React.Reducer<LayoutMap, LayoutAction>>(reducer, initialLayout);
 
 	const tabPortals = useTabPortals(tabs);
-	const portals = new Map<string, PortalNode>();
+	const portals = new Map<string, HtmlPortalNode>();
 	const inPortals: JSX.Element[] = [];
 	tabPortals.forEach(([portal, el], id) => {
 		portals.set(id, portal);

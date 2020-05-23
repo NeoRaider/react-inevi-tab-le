@@ -1,7 +1,7 @@
 import * as React from 'react';
 const { useReducer } = React;
 
-import { PortalNode } from 'react-reverse-portal';
+import { HtmlPortalNode } from 'react-reverse-portal';
 
 import { Layout, LayoutAction, reducer } from './layout/pane';
 
@@ -23,7 +23,7 @@ export function TabPane({ initialLayout, tabs }: TabPaneProps): JSX.Element {
 	const [layout, dispatch] = useReducer<React.Reducer<Layout, LayoutAction>>(reducer, initialLayout);
 
 	const tabPortals = useTabPortals(tabs);
-	const portals = new Map<string, PortalNode>();
+	const portals = new Map<string, HtmlPortalNode>();
 	const inPortals: JSX.Element[] = [];
 	tabPortals.forEach(([portal, el], id) => {
 		portals.set(id, portal);

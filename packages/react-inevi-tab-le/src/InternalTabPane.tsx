@@ -1,7 +1,7 @@
 import * as React from 'react';
 const { useRef } = React;
 
-import { OutPortal, PortalNode } from 'react-reverse-portal';
+import { OutPortal, HtmlPortalNode } from 'react-reverse-portal';
 
 import { Layout, GenericLayoutAction } from './layout/pane';
 
@@ -15,7 +15,7 @@ export function useRealm<TabID>(): Realm<TabID> {
 export interface InternalTabPaneProps<TabID> {
 	realm: Realm<TabID>;
 	tabs: ReadonlyMap<string, Tab>;
-	portals: ReadonlyMap<string, PortalNode>;
+	portals: ReadonlyMap<string, HtmlPortalNode>;
 
 	getID(tab: string): TabID;
 
